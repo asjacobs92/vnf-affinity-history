@@ -1,0 +1,124 @@
+from models import *
+from neuralnet import *
+
+global debug
+
+def min_cpu_affinity(vnf_a, vnf_b, fg, nsd):
+    if (debug):
+        print "vnf_a vm cpu: " + str(vnf_a.vm_cpu) + " flavor: " + str(vnf_a.flavor.min_cpu)
+        print "vnf_b vm cpu: " + str(vnf_b.vm_cpu) + " flavor: " + str(vnf_b.flavor.min_cpu)
+        
+    if (vnf_a.vm_cpu >= vnf_a.flavor.min_cpu and vnf_b.vm_cpu >= vnf_b.flavor.min_cpu):
+        return 1.0
+
+    if (vnf_a.vm_cpu >= vnf_a.flavor.min_cpu and vnf_b.vm_cpu < vnf_b.flavor.min_cpu):
+        return (1.0 + max(0.001, vnf_b.vm_cpu / vnf_b.flavor.min_cpu)) * 0.5
+
+    if (vnf_a.vm_cpu < vnf_a.flavor.min_cpu and vnf_b.vm_cpu >= vnf_b.flavor.min_cpu):
+        return (max(0.001, vnf_a.vm_cpu / vnf_a.flavor.min_cpu) + 1.0) * 0.5
+
+    return (max(0.001, vnf_a.vm_cpu / vnf_a.flavor.min_cpu) + max(0.001, vnf_b.vm_cpu / vnf_b.flavor.min_cpu)) * 0.5
+
+def min_mem_affinity(vnf_a, vnf_b, fg, nsd):
+    if (debug):
+        print "vnf_a vm mem: " + str(vnf_a.vm_mem) + " flavor: " + str(vnf_a.flavor.min_mem)
+        print "vnf_b vm mem: " + str(vnf_b.vm_mem) + " flavor: " + str(vnf_b.flavor.min_mem)
+    if (vnf_a.vm_mem >= vnf_a.flavor.min_mem and vnf_b.vm_mem >= vnf_b.flavor.min_mem):
+        return 1.0
+
+    if (vnf_a.vm_mem >= vnf_a.flavor.min_mem and vnf_b.vm_mem < vnf_b.flavor.min_mem):
+        return (1.0 + max(0.001, vnf_b.vm_mem / vnf_b.flavor.min_mem)) * 0.5
+
+    if (vnf_a.vm_mem < vnf_a.flavor.min_mem and vnf_b.vm_mem >= vnf_b.flavor.min_mem):
+        return (max(0.001, vnf_a.vm_mem / vnf_a.flavor.min_mem) + 1.0) * 0.5
+
+    return (max(0.001, vnf_a.vm_mem / vnf_a.flavor.min_mem) + max(0.001, vnf_b.vm_mem / vnf_b.flavor.min_mem)) * 0.5
+
+def min_sto_affinity(vnf_a, vnf_b, fg, nsd):
+    if (debug):
+        print "vnf_a vm sto: " + str(vnf_a.vm_sto) + " flavor: " + str(vnf_a.flavor.min_sto)
+        print "vnf_b vm sto: " + str(vnf_b.vm_sto) + " flavor: " + str(vnf_b.flavor.min_sto)
+    if (vnf_a.vm_sto >= vnf_a.flavor.min_sto and vnf_b.vm_sto >= vnf_b.flavor.min_sto):
+        return 1.0
+
+    if (vnf_a.vm_sto >= vnf_a.flavor.min_sto and vnf_b.vm_sto < vnf_b.flavor.min_sto):
+        return (1.0 + max(0.001, vnf_b.vm_sto / vnf_b.flavor.min_sto)) * 0.5
+
+    if (vnf_a.vm_sto < vnf_a.flavor.min_sto and vnf_b.vm_sto >= vnf_b.flavor.min_sto):
+        return (max(0.001, vnf_a.vm_sto / vnf_a.flavor.min_sto) + 1.0) * 0.5
+
+    return (max(0.001, vnf_a.vm_sto / vnf_a.flavor.min_sto) + max(0.001, vnf_b.vm_sto / vnf_b.flavor.min_sto)) * 0.5
+
+def conflicts_affinity(vnf_a, vnf_b, fg, nsd):
+    if (fg is not None):
+        for conflict in nsd.conflicts:
+            if ((conflict.vnf_a.id == vnf_a.id and conflict.vnf_b.id == vnf_b.id) or
+                (conflict.vnf_a.id == vnf_b.id and conflict.vnf_b.id == vnf_a.id)):
+                return 0.001
+    return 1.0
+    
+def history_affinity(vnf_a, vnf_b, fg, nsd):
+    global neural_net
+    global nn_fit_data_array
+    global nn_fit_affinity
+
+    data = get_nn_features(vnf_a, vnf_b, fg, nsd)
+    affinity = neural_net.predict([data])[0]
+    
+    nn_fit_data_array.append(data)
+    nn_fit_affinity.append(affinity)
+
+    return max(0.001, affinity)
+
+def cpu_usage_affinity(vnf_a, vnf_b, fg, nsd):
+    if (debug):
+        print "vnf a cpu usage: " + str(vnf_a.cpu_usage)
+        print "vnf b cpu usage: " + str(vnf_b.cpu_usage)
+    return max(0.001, 1.0 - ((vnf_a.cpu_usage + vnf_b.cpu_usage) / 100.0))
+
+def mem_usage_affinity(vnf_a, vnf_b, fg, nsd):
+    if (debug):
+        print "vnf a mem usage: " + str(vnf_a.mem_usage)
+        print "vnf b mem usage: " + str(vnf_b.mem_usage)
+    return max(0.001, 1.0 - ((vnf_a.mem_usage + vnf_b.mem_usage) / 100.0))
+
+def sto_usage_affinity(vnf_a, vnf_b, fg, nsd):
+    if (debug):
+        print "vnf a cpu usage: " + str(vnf_a.cpu_usage)
+        print "vnf b cpu usage: " + str(vnf_b.cpu_usage)
+    return max(0.001, 1.0 - ((vnf_a.sto_usage + vnf_b.sto_usage) / 100.0))
+
+def bnd_usage_affinity(vnf_a, vnf_b, fg, nsd):
+    if (fg is not None):
+        flow = next((x for x in fg.flows if ((x.src == vnf_a.label and x.dst == vnf_b.label) or (x.src == vnf_b.label and x.dst == vnf_a.label))), None)
+        if (flow != None):
+            return max(0.001, 1.0 - (flow.bnd_usage/100.0))
+    return -1.0
+
+def pkt_loss_affinity(vnf_a, vnf_b, fg, nsd):
+    if (fg is not None):
+        flow = next((x for x in fg.flows if ((x.src == vnf_a.label and x.dst == vnf_b.label) or (x.src == vnf_b.label and x.dst == vnf_a.label))), None)
+        if (flow != None):
+            return max(0.001, 1.0 - (flow.pkt_loss/100.0))
+    return -1.0
+
+def lat_affinity(vnf_a, vnf_b, fg, nsd):
+    if (fg is not None):
+        flow = next((x for x in fg.flows if ((x.src == vnf_a.label and x.dst == vnf_b.label) or (x.src == vnf_b.label and x.dst == vnf_a.label))), None)
+        if (flow != None):
+            return 1.0 if (2.0 * flow.latency <= nsd.sla) else max(0.001, 1.0 - ((2.0 * flow.latency - nsd.sla) / nsd.sla))
+    return -1.0
+    
+criteria = [
+    Criterion("min_cpu", "static", "PM", 1, min_cpu_affinity),
+    Criterion("min_mem", "static", "PM", 1, min_mem_affinity),
+    Criterion("min_sto", "static", "PM", 1, min_sto_affinity),
+    Criterion("conflicts", "static", "FG", 1, conflicts_affinity),
+    Criterion("history", "static", "FG", 0, history_affinity),
+    Criterion("cpu_usage", "dynamic", "PM", 1, cpu_usage_affinity),
+    Criterion("mem_usage", "dynamic", "PM", 1, mem_usage_affinity),
+    Criterion("sto_usage", "dynamic", "PM", 1, sto_usage_affinity),
+    Criterion("bnd_usage", "dynamic", "FG", 1, bnd_usage_affinity),
+    Criterion("pkt_loss", "dynamic", "FG", 1, pkt_loss_affinity),
+    Criterion("lat", "dynamic", "FG", 1, lat_affinity)
+]
