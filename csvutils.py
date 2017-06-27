@@ -1,4 +1,5 @@
 import csv
+from criteria import *
 
 class CsvUtils(object):
     def __init__(self, file, dialect=csv.excel):
@@ -40,7 +41,10 @@ class CsvUtils(object):
             "flow traffic",
             "flow latency", 
             "flow bnd usage", 
-            "flow packet loss"
+            "flow packet loss", 
+            "min cpu affinity", 
+            "min mem affinity", 
+            "min sto affinity"
         ]
         return headers
         
@@ -85,10 +89,13 @@ class CsvUtils(object):
             vnf_b_before_id,
             vnf_b_after_id,
             nsd.sla, 
-            fg.label if (fg is not None) else "",
+            fg.id if (fg is not None) else "",
             flow.traffic if (flow is not None) else "",
             flow.latency if (flow is not None) else "",
             flow.bnd_usage if (flow is not None) else "",
-            flow.pkt_loss if (flow is not None) else ""
+            flow.pkt_loss if (flow is not None) else "", 
+            min_cpu_affinity(vnf_a, vnf_b, fg, nsd),
+            min_mem_affinity(vnf_a, vnf_b, fg, nsd), 
+            min_sto_affinity(vnf_a, vnf_b, fg, nsd), 
         ]
         return values

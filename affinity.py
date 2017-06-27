@@ -56,7 +56,7 @@ def trf_affinity(vnf_a, vnf_b, fg, nsd):
                 max_fg_trf = flow.traffic
         
         if (vnfs_trf != 0):
-            return max(0.001, float(vnfs_trf)/950.0)
+            return max(0.001, float(vnfs_trf)/max_fg_trf)
     return -1
 
 def network_affinity(vnf_a, vnf_b, fg, nsd):

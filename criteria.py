@@ -1,5 +1,5 @@
+from debug import *
 from models import *
-from neuralnet import *
 
 global debug
 
@@ -52,24 +52,10 @@ def min_sto_affinity(vnf_a, vnf_b, fg, nsd):
 def conflicts_affinity(vnf_a, vnf_b, fg, nsd):
     if (fg is not None):
         for conflict in nsd.conflicts:
-            if ((conflict.vnf_a.id == vnf_a.id and conflict.vnf_b.id == vnf_b.id) or
-                (conflict.vnf_a.id == vnf_b.id and conflict.vnf_b.id == vnf_a.id)):
+            if (conflict["vnf_a"] == vnf_a.type[1] and conflict["vnf_b"] == vnf_b.type[1]):
                 return 0.001
     return 1.0
     
-def history_affinity(vnf_a, vnf_b, fg, nsd):
-    global neural_net
-    global nn_fit_data_array
-    global nn_fit_affinity
-
-    data = get_nn_features(vnf_a, vnf_b, fg, nsd)
-    affinity = neural_net.predict([data])[0]
-    
-    nn_fit_data_array.append(data)
-    nn_fit_affinity.append(affinity)
-
-    return max(0.001, affinity)
-
 def cpu_usage_affinity(vnf_a, vnf_b, fg, nsd):
     if (debug):
         print "vnf a cpu usage: " + str(vnf_a.cpu_usage)
@@ -114,7 +100,6 @@ criteria = [
     Criterion("min_mem", "static", "PM", 1, min_mem_affinity),
     Criterion("min_sto", "static", "PM", 1, min_sto_affinity),
     Criterion("conflicts", "static", "FG", 1, conflicts_affinity),
-    Criterion("history", "static", "FG", 0, history_affinity),
     Criterion("cpu_usage", "dynamic", "PM", 1, cpu_usage_affinity),
     Criterion("mem_usage", "dynamic", "PM", 1, mem_usage_affinity),
     Criterion("sto_usage", "dynamic", "PM", 1, sto_usage_affinity),
