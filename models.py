@@ -12,47 +12,50 @@ class Criterion(object):
         self.scope = scope
         self.formula = formula
         self.weight = weight
-    
+
 class VNF(object):
     class_sequence = 1
     types = [
-        ('load balancer', 1), 
-        ('dpi', 2), 
-        ('firewall', 3), 
-        ('ips', 4), 
-        ('ids', 5), 
-        ('nat', 6), 
-        ('traffic counter', 7), 
-        ('cache', 8), 
+        ('load balancer', 1),
+        ('dpi', 2),
+        ('firewall', 3),
+        ('ips', 4),
+        ('ids', 5),
+        ('nat', 6),
+        ('traffic counter', 7),
+        ('cache', 8),
         ('proxy', 9)
     ]
-    def __init__(self, pm, flavor, id = 0, type = 0, vm_cpu = 0, vm_mem = 0, vm_sto = 0, cpu_usage = 0, mem_usage = 0, sto_usage = 0):
+    def __init__(self, pm, flavor, id = 0, type = 0, vm_cpu = 0, vm_mem = 0, vm_sto = 0, cpu_usage = 0, mem_usage = 0, sto_usage = 0, index = 0, timestamp = "", fg_id = 0):
         self.id = VNF.class_sequence if id == 0 else id
         if (type == 0):
             self.type = choice(VNF.types)
-            self.vm_cpu = randrange(500, 2100, 100)
-            self.vm_mem = randrange(500, 2100, 100)
-            self.vm_sto = randrange(500, 2100, 100)
-    
-            self.cpu_usage = randint(5,50)
-            self.mem_usage = randint(5,50)
-            self.sto_usage = randint(5,50)
+            self.vm_cpu = randrange(100, 2000, 100)
+            self.vm_mem = randrange(100, 2000, 100)
+            self.vm_sto = randrange(100, 2000, 100)
+
+            self.cpu_usage = randint(1,30)
+            self.mem_usage = randint(1,30)
+            self.sto_usage = randint(1,30)
         else:
-            self.type = next((x for x in VNF.types if x[1] == type), 0)
+            self.type = type
             self.vm_cpu = vm_cpu
             self.vm_mem = vm_mem
             self.vm_sto = vm_sto
-    
+
             self.cpu_usage = cpu_usage
             self.mem_usage = mem_usage
             self.sto_usage = sto_usage
-        
+
         self.label = str(self.type[0]) + "." + str(self.type[1]) + "." + str(self.id)
         self.pm = pm
         self.flavor = flavor
+        self.index = index
+        self.timestamp = timestamp
+        self.fg_id = fg_id
 
         VNF.class_sequence += 1
-      
+
     def find_fgs(self, fgs):
         vnf_fgs = []
         for fg in fgs:
@@ -63,20 +66,20 @@ class VNF(object):
 
 class PhysicalMachine(object):
     class_sequence = 1
-    def __init__(self, id = 0):
+    def __init__(self, id = 0, cpu = 0, mem = 0, sto = 0):
         self.id = PhysicalMachine.class_sequence if id == 0 else id
-        self.cpu = 4000
-        self.mem = 8196
-        self.sto = 8000
+        self.cpu = 0.5 if cpu == 0 else cpu
+        self.mem = 0.5 if mem == 0 else mem
+        self.sto = 0.5 if sto == 0 else sto
         PhysicalMachine.class_sequence += 1
-    
+
 class ForwardingGraph(object):
     class_sequence = 1
     def __init__(self, id = 0, flows = None):
         self.id = ForwardingGraph.class_sequence if id == 0 else id
         self.label = "fg"
         self.flows = flows
-                
+
         ForwardingGraph.class_sequence += 1
 
 class Flow(object):
@@ -106,9 +109,9 @@ class Flavor(object):
             self.min_mem = min_mem
             self.min_sto = min_sto
         else:
-            self.min_cpu = randrange(500, 2100, 100)
-            self.min_mem = randrange(500, 2100, 100)
-            self.min_sto = randrange(500, 2100, 100)
+            self.min_cpu = randrange(100, 2000, 100)
+            self.min_mem = randrange(100, 2000, 100)
+            self.min_sto = randrange(100, 2000, 100)
         Flavor.class_sequence += 1
 
 class NSD(object):

@@ -1,9 +1,9 @@
 import simplejson
 import scipy
 import numpy
+import sys
 from math import *
 from time import *
-from parser import *
 from random import *
 from criteria import *
 from affinity import *
@@ -14,18 +14,19 @@ from sklearn.neural_network import MLPRegressor
 from sklearn.naive_bayes import GaussianNB
 
 fit_pms = []
-
 fit_flavors = []
 fit_vnfs = []
 fit_fgs = []
 fit_nsd = NSD()
 
+test_pms = []
 test_flavors = []
 test_vnfs = []
 test_fgs = []
 test_nsd = None
 
 init = True
+real = True
 
 def init_fit_data():
     pms = []
@@ -68,7 +69,7 @@ def init_fit_data():
     nsd = NSD()
     return pms, flavors, vnfs, fgs, nsd
 
-def init_test_data():
+def init_fake_test_data():
     global fit_vnfs
     global fit_flavors
     global fit_fgs
@@ -79,43 +80,155 @@ def init_test_data():
     global test_fgs
     global test_nsd
 
-    # p = numpy.random.poisson(lam=0.5, size=100)
-    #
-    # print p
-    #
-    # print poisson.pmf(choice(p), mean(p))
+    p = numpy.random.poisson(lam=0.5, size=1000)
+    m = numpy.mean(p)
 
     for flavor in fit_flavors:
         test_flavors.append(Flavor(flavor.id,
-                                    numpy.random.normal(0.5, 0.1, 1)[0] * 2100,
-                                    numpy.random.normal(0.5, 0.1, 1)[0] * 2100,
-                                    numpy.random.normal(0.5, 0.1, 1)[0] * 2100))
+                                    scipy.stats.poisson.pmf(choice(p), m) * 2100,
+                                    scipy.stats.poisson.pmf(choice(p), m) * 2100,
+                                    scipy.stats.poisson.pmf(choice(p), m) * 2100))
 
     for vnf in fit_vnfs:
         flavor = next((x for x in test_flavors if x.id == vnf.flavor.id), test_flavors[0])
         test_vnfs.append(VNF(vnf.pm, flavor,
                                 id = vnf.id,
-                                type = vnf.type[1],
-                                vm_cpu = numpy.random.normal(0.5, 0.1, 1)[0] * 2100,
-                                vm_mem = numpy.random.normal(0.5, 0.1, 1)[0] * 2100,
-                                vm_sto = numpy.random.normal(0.5, 0.1, 1)[0] * 2100,
-                                cpu_usage = numpy.random.normal(0.5, 0.1, 1)[0] * 50,
-                                mem_usage = numpy.random.normal(0.5, 0.1, 1)[0] * 50,
-                                sto_usage = numpy.random.normal(0.5, 0.1, 1)[0] * 50))
+                                type = vnf.type,
+                                vm_cpu = scipy.stats.poisson.pmf(choice(p), m) * 2100,
+                                vm_mem = scipy.stats.poisson.pmf(choice(p), m) * 2100,
+                                vm_sto = scipy.stats.poisson.pmf(choice(p), m) * 2100,
+                                cpu_usage = scipy.stats.poisson.pmf(choice(p), m) * 50,
+                                mem_usage = scipy.stats.poisson.pmf(choice(p), m) * 50,
+                                sto_usage = scipy.stats.poisson.pmf(choice(p), m) * 50))
 
     for fg in fit_fgs:
         flows = []
         for flow in fg.flows:
             flows.append(Flow(flow.src, flow.dst,
-                                numpy.random.normal(0.5, 0.1, 1)[0] * 10,
-                                numpy.random.normal(0.5, 0.1, 1)[0] * 15,
-                                numpy.random.normal(0.5, 0.1, 1)[0] * 30,
-                                numpy.random.normal(0.5, 0.1, 1)[0] * 5))
+                                scipy.stats.poisson.pmf(choice(p), m) * 10,
+                                scipy.stats.poisson.pmf(choice(p), m) * 15,
+                                scipy.stats.poisson.pmf(choice(p), m) * 30,
+                                scipy.stats.poisson.pmf(choice(p), m) * 5))
         test_fgs.append(ForwardingGraph(id = fg.id, flows = flows))
 
     for vnf in test_vnfs:
         vnf.find_fgs(test_fgs)
-    test_nsd = NSD(sla = numpy.random.normal(0.5, 0.1, 1)[0] * fit_nsd.sla)
+    test_nsd = NSD(sla = scipy.stats.poisson.pmf(choice(p), m) * fit_nsd.sla)
+
+def init_real_test_data():
+    global test_pms
+    global test_vnfs
+    global test_flavors
+    global test_fgs
+    global test_nsd
+
+    p = numpy.random.poisson(lam=0.5, size=1000)
+    m = numpy.mean(p)
+
+    with open("data/me-part-00000-of-00001.csv", "rb") as file_pms:
+        reader_pms = csv.reader(file_pms)
+        for pm in reader_pms:
+            if (int(pm[2]) == 0):
+                pm_id = pm[1]
+                pm_cpu = float(pm[4]) if pm[4] is not "" else 0.5
+                pm_mem = float(pm[5]) if pm[5] is not "" else 0.5
+                pm_sto = 0.5
+
+                test_pms.append(PhysicalMachine(pm_id))
+
+    num_files = 1
+    for i in range(num_files):
+        with open("data/te-part-0000" + str(i) + "-of-00500.csv", "rb") as file_tasks:
+            with open("data/tu-part-0000" + str(i) + "-of-00500.csv", "rb") as file_usage:
+                print file_tasks
+                print file_usage
+                reader_tasks = csv.reader(file_tasks)
+                reader_usage = csv.reader(file_usage)
+
+                for task in reader_tasks:
+                    file_usage.seek(0)
+                    if (len(test_vnfs) >= 1000):
+                        break
+
+                    if (int(task[5]) == 1):
+                        timestamp = task[0]
+                        fg_id = int(task[2])
+                        vnf_index = int(task[3])
+                        pm_id = int(task[4])
+                        vnf_type = choice(VNF.types)
+
+                        pm = next((x for x in fit_pms if x.id == pm_id), None)
+                        if (pm is None):
+                            pm = PhysicalMachine(pm_id)
+                            test_pms.append(pm)
+
+                        vm_cpu = float(task[9])
+                        vm_mem = float(task[10])
+                        vm_sto = float(task[11])
+                        cpu_usage = 0
+                        mem_usage = 0
+                        sto_usage = 0
+
+                        for usage in reader_usage:
+                            if (int(usage[2]) == fg_id and int(usage[3]) == vnf_index and usage[13] != "" and usage[10] != "" and usage[14] != ""):
+                                cpu_usage = (float(usage[13]) / pm.cpu) * 100
+                                mem_usage = (float(usage[10]) / pm.mem) * 100
+                                sto_usage = (float(usage[14]) / pm.sto) * 100
+                                break
+
+                        if (cpu_usage == 0 or mem_usage == 0 or sto_usage == 0):
+                            continue
+
+                        flavor = next((x for x in test_flavors if x.min_cpu == vm_cpu and x.min_mem == vm_mem and x.min_sto == vm_sto), None)
+                        if (flavor is None):
+                            flavor = Flavor(min_cpu = vm_cpu * numpy.random.uniform(0,1,1)[0] * 2,
+                                            min_mem = vm_mem * numpy.random.uniform(0,1,1)[0] * 2,
+                                            min_sto = vm_sto * numpy.random.uniform(0,1,1)[0] * 2)
+                            fit_flavors.append(flavor)
+
+                        vnf = VNF(pm, flavor,
+                                    type = vnf_type,
+                                    vm_cpu = vm_cpu,
+                                    vm_mem = vm_mem,
+                                    vm_sto = vm_sto,
+                                    cpu_usage = cpu_usage,
+                                    mem_usage = mem_usage,
+                                    sto_usage = sto_usage,
+                                    index = vnf_index,
+                                    timestamp = timestamp,
+                                    fg_id = fg_id)
+                        # print vnf.__dict__
+                        # sys.stdin.read(1)
+                        test_vnfs.append(vnf)
+
+    print len(test_vnfs)
+    for i in range(num_files):
+        with open("data/je-part-0000" + str(i) + "-of-00500.csv", "rb") as file_fgs:
+            reader_fgs = csv.reader(file_fgs)
+
+            for fg in reader_fgs:
+                if (int(fg[3]) == 1):
+                    fg_id = int(fg[2])
+
+                    flows = []
+                    fg_vnfs = filter(lambda x: x.fg_id == fg_id, test_vnfs)
+                    fg_vnfs.sort(key= lambda x: x.index, reverse=False)
+                    for i in range(len(fg_vnfs) - 1):
+                        src = fg_vnfs[i]
+                        dst = fg_vnfs[i + 1]
+
+                        traffic = scipy.stats.poisson.pmf(choice(p), m) * 10
+                        latency = scipy.stats.poisson.pmf(choice(p), m) * 15
+                        bnd_usage = scipy.stats.poisson.pmf(choice(p), m) * 30
+                        pkt_loss = scipy.stats.poisson.pmf(choice(p), m) * 5
+
+                        flows.append(Flow(src.label, dst.label, traffic, latency, bnd_usage, pkt_loss))
+
+                    test_fgs.append(ForwardingGraph(fg_id, flows))
+
+    for vnf in test_vnfs:
+        vnf.find_fgs(test_fgs)
+    test_nsd = NSD(sla = scipy.stats.poisson.pmf(choice(p), m) * fit_nsd.sla)
 
 def parse_fit_csvs():
     global fit_pms
@@ -134,7 +247,7 @@ def parse_fit_csvs():
             vm_data = row[6:9]
             usage_data = row[9:12]
 
-            pm = next((x for x in fit_pms if x.id == vnf_id), None)
+            pm = next((x for x in fit_pms if x.id == vnf_pm), None)
             if (pm is None):
                 pm = PhysicalMachine(vnf_pm)
                 fit_pms.append(pm)
@@ -259,26 +372,26 @@ def init_fit_db():
     global nn_fit_affinity
 
     nsd = fit_nsd
-    pms = fit_pms
-    vnfs = fit_vnfs
-    flavors = fit_flavors
-    fgs = fit_fgs
+    pms = list(fit_pms)
+    vnfs = list(fit_vnfs)
+    flavors = list(fit_flavors)
+    fgs = list(fit_fgs)
 
     num_good = 0
     num_medium = 0
     num_bad = 0
-    num_fit = 100000
+    num_fit = 1000
 
     with open("input/nn_fit.csv", "wb") as file:
         writer = csv.writer(file, delimiter = ";")
         while (True):
-            if (num_good < num_fit or num_bad < num_fit or num_medium < num_fit):
+            if (num_bad < num_fit or num_medium < num_fit or num_good < num_fit):
                 if (init):
                     pms, flavors, vnfs, fgs, nsd = init_fit_data()
                     fit_pms += pms
                     fit_flavors += flavors
                     fit_nsd = nsd
-                print(num_good, num_bad, num_medium)
+                print(num_bad, num_medium, num_good)
             else:
                 break
 
@@ -357,10 +470,13 @@ def init_test_db():
     global test_nsd
 
     if (init):
-        init_test_data()
+        if (real):
+            init_real_test_data()
+        else:
+            init_fake_test_data()
 
     num_tests = 0
-    max_tests = 300000
+    max_tests = 1000
 
     with open("input/nn_test.csv", "wb") as file:
         writer = csv.writer(file, delimiter = ";")

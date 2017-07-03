@@ -5,49 +5,49 @@ global debug
 
 def min_cpu_affinity(vnf_a, vnf_b, fg, nsd):
     if (debug):
-        print "vnf_a vm cpu: " + str(vnf_a.vm_cpu) + " flavor: " + str(vnf_a.flavor.min_cpu)
-        print "vnf_b vm cpu: " + str(vnf_b.vm_cpu) + " flavor: " + str(vnf_b.flavor.min_cpu)
-        
-    if (vnf_a.vm_cpu >= vnf_a.flavor.min_cpu and vnf_b.vm_cpu >= vnf_b.flavor.min_cpu):
+        print "vnf_a vm cpu: " + str(float(vnf_a.vm_cpu)) + " flavor: " + str(float(vnf_a.flavor.min_cpu))
+        print "vnf_b vm cpu: " + str(float(vnf_b.vm_cpu)) + " flavor: " + str(float(vnf_b.flavor.min_cpu))
+
+    if (float(vnf_a.vm_cpu) >= float(vnf_a.flavor.min_cpu) and float(vnf_b.vm_cpu) >= float(vnf_b.flavor.min_cpu)):
         return 1.0
 
-    if (vnf_a.vm_cpu >= vnf_a.flavor.min_cpu and vnf_b.vm_cpu < vnf_b.flavor.min_cpu):
-        return (1.0 + max(0.001, vnf_b.vm_cpu / vnf_b.flavor.min_cpu)) * 0.5
+    if (float(vnf_a.vm_cpu) >= float(vnf_a.flavor.min_cpu) and float(vnf_b.vm_cpu) < float(vnf_b.flavor.min_cpu)):
+        return (1.0 + max(0.001, float(vnf_b.vm_cpu) / float(vnf_b.flavor.min_cpu))) * 0.5
 
-    if (vnf_a.vm_cpu < vnf_a.flavor.min_cpu and vnf_b.vm_cpu >= vnf_b.flavor.min_cpu):
-        return (max(0.001, vnf_a.vm_cpu / vnf_a.flavor.min_cpu) + 1.0) * 0.5
+    if (float(vnf_a.vm_cpu) < float(vnf_a.flavor.min_cpu) and float(vnf_b.vm_cpu) >= float(vnf_b.flavor.min_cpu)):
+        return (max(0.001, float(vnf_a.vm_cpu) / float(vnf_a.flavor.min_cpu)) + 1.0) * 0.5
 
-    return (max(0.001, vnf_a.vm_cpu / vnf_a.flavor.min_cpu) + max(0.001, vnf_b.vm_cpu / vnf_b.flavor.min_cpu)) * 0.5
+    return (max(0.001, float(vnf_a.vm_cpu) / float(vnf_a.flavor.min_cpu)) + max(0.001, float(vnf_b.vm_cpu) / float(vnf_b.flavor.min_cpu))) * 0.5
 
 def min_mem_affinity(vnf_a, vnf_b, fg, nsd):
     if (debug):
-        print "vnf_a vm mem: " + str(vnf_a.vm_mem) + " flavor: " + str(vnf_a.flavor.min_mem)
-        print "vnf_b vm mem: " + str(vnf_b.vm_mem) + " flavor: " + str(vnf_b.flavor.min_mem)
-    if (vnf_a.vm_mem >= vnf_a.flavor.min_mem and vnf_b.vm_mem >= vnf_b.flavor.min_mem):
+        print "vnf_a vm mem: " + str(float(vnf_a.vm_mem)) + " flavor: " + str(float(vnf_a.flavor.min_mem))
+        print "vnf_b vm mem: " + str(float(vnf_b.vm_mem)) + " flavor: " + str(float(vnf_b.flavor.min_mem))
+    if (float(vnf_a.vm_mem) >= float(vnf_a.flavor.min_mem) and float(vnf_b.vm_mem) >= float(vnf_b.flavor.min_mem)):
         return 1.0
 
-    if (vnf_a.vm_mem >= vnf_a.flavor.min_mem and vnf_b.vm_mem < vnf_b.flavor.min_mem):
-        return (1.0 + max(0.001, vnf_b.vm_mem / vnf_b.flavor.min_mem)) * 0.5
+    if (float(vnf_a.vm_mem) >= float(vnf_a.flavor.min_mem) and float(vnf_b.vm_mem) < float(vnf_b.flavor.min_mem)):
+        return (1.0 + max(0.001, float(vnf_b.vm_mem) / float(vnf_b.flavor.min_mem))) * 0.5
 
-    if (vnf_a.vm_mem < vnf_a.flavor.min_mem and vnf_b.vm_mem >= vnf_b.flavor.min_mem):
-        return (max(0.001, vnf_a.vm_mem / vnf_a.flavor.min_mem) + 1.0) * 0.5
+    if (float(vnf_a.vm_mem) < float(vnf_a.flavor.min_mem) and float(vnf_b.vm_mem) >= float(vnf_b.flavor.min_mem)):
+        return (max(0.001, float(vnf_a.vm_mem) / float(vnf_a.flavor.min_mem)) + 1.0) * 0.5
 
-    return (max(0.001, vnf_a.vm_mem / vnf_a.flavor.min_mem) + max(0.001, vnf_b.vm_mem / vnf_b.flavor.min_mem)) * 0.5
+    return (max(0.001, float(vnf_a.vm_mem) / float(vnf_a.flavor.min_mem)) + max(0.001, float(vnf_b.vm_mem) / float(vnf_b.flavor.min_mem))) * 0.5
 
 def min_sto_affinity(vnf_a, vnf_b, fg, nsd):
     if (debug):
-        print "vnf_a vm sto: " + str(vnf_a.vm_sto) + " flavor: " + str(vnf_a.flavor.min_sto)
-        print "vnf_b vm sto: " + str(vnf_b.vm_sto) + " flavor: " + str(vnf_b.flavor.min_sto)
-    if (vnf_a.vm_sto >= vnf_a.flavor.min_sto and vnf_b.vm_sto >= vnf_b.flavor.min_sto):
+        print "vnf_a vm sto: " + str(float(vnf_a.vm_sto)) + " flavor: " + str(float(vnf_a.flavor.min_sto))
+        print "vnf_b vm sto: " + str(float(vnf_b.vm_sto)) + " flavor: " + str(float(vnf_b.flavor.min_sto))
+    if (float(vnf_a.vm_sto) >= float(vnf_a.flavor.min_sto) and float(vnf_b.vm_sto) >= float(vnf_b.flavor.min_sto)):
         return 1.0
 
-    if (vnf_a.vm_sto >= vnf_a.flavor.min_sto and vnf_b.vm_sto < vnf_b.flavor.min_sto):
-        return (1.0 + max(0.001, vnf_b.vm_sto / vnf_b.flavor.min_sto)) * 0.5
+    if (float(vnf_a.vm_sto) >= float(vnf_a.flavor.min_sto) and float(vnf_b.vm_sto) < float(vnf_b.flavor.min_sto)):
+        return (1.0 + max(0.001, float(vnf_b.vm_sto) / float(vnf_b.flavor.min_sto))) * 0.5
 
-    if (vnf_a.vm_sto < vnf_a.flavor.min_sto and vnf_b.vm_sto >= vnf_b.flavor.min_sto):
-        return (max(0.001, vnf_a.vm_sto / vnf_a.flavor.min_sto) + 1.0) * 0.5
+    if (float(vnf_a.vm_sto) < float(vnf_a.flavor.min_sto) and float(vnf_b.vm_sto) >= float(vnf_b.flavor.min_sto)):
+        return (max(0.001, float(vnf_a.vm_sto) / float(vnf_a.flavor.min_sto)) + 1.0) * 0.5
 
-    return (max(0.001, vnf_a.vm_sto / vnf_a.flavor.min_sto) + max(0.001, vnf_b.vm_sto / vnf_b.flavor.min_sto)) * 0.5
+    return (max(0.001, float(vnf_a.vm_sto) / float(vnf_a.flavor.min_sto)) + max(0.001, float(vnf_b.vm_sto) / float(vnf_b.flavor.min_sto))) * 0.5
 
 def conflicts_affinity(vnf_a, vnf_b, fg, nsd):
     if (fg is not None):
@@ -55,7 +55,7 @@ def conflicts_affinity(vnf_a, vnf_b, fg, nsd):
             if (conflict["vnf_a"] == vnf_a.type[1] and conflict["vnf_b"] == vnf_b.type[1]):
                 return 0.001
     return 1.0
-    
+
 def cpu_usage_affinity(vnf_a, vnf_b, fg, nsd):
     if (debug):
         print "vnf a cpu usage: " + str(vnf_a.cpu_usage)
@@ -94,7 +94,7 @@ def lat_affinity(vnf_a, vnf_b, fg, nsd):
         if (flow != None):
             return 1.0 if (2.0 * flow.latency <= nsd.sla) else max(0.001, 1.0 - ((2.0 * flow.latency - nsd.sla) / nsd.sla))
     return -1.0
-    
+
 criteria = [
     Criterion("min_cpu", "static", "PM", 1, min_cpu_affinity),
     Criterion("min_mem", "static", "PM", 1, min_mem_affinity),
