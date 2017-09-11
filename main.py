@@ -17,13 +17,11 @@ fit_pms = []
 fit_flavors = []
 fit_vnfs = []
 fit_fgs = []
-fit_nsd = NSD()
 
 test_pms = []
 test_flavors = []
 test_vnfs = []
 test_fgs = []
-test_nsd = None
 
 init = True
 real = True
@@ -33,7 +31,6 @@ def init_fit_data():
     vnfs = []
     flavors = []
     fgs = []
-    nsd = []
 
     for i in range(5):
         flavors.append(Flavor())
@@ -56,7 +53,7 @@ def init_fit_data():
         if (len(flows) == num_flows):
             dst = "0.0"
             flows.append(Flow(last_id, dst))
-            fgs.append(ForwardingGraph(flows = flows))
+            fgs.append(ForwardingGraph(flows = flows, nsd = NSD()))
             flows = []
         else:
             dst = vnfs_ids.pop()
@@ -66,19 +63,16 @@ def init_fit_data():
     for vnf in vnfs:
         vnf.find_fgs(fgs)
 
-    nsd = NSD()
-    return pms, flavors, vnfs, fgs, nsd
+    return pms, flavors, vnfs, fgs
 
 def init_fake_test_data():
     global fit_vnfs
     global fit_flavors
     global fit_fgs
-    global fit_nsd
 
     global test_vnfs
     global test_flavors
     global test_fgs
-    global test_nsd
 
     p = numpy.random.poisson(lam=0.5, size=1000)
     m = numpy.mean(p)
@@ -109,18 +103,16 @@ def init_fake_test_data():
                                 scipy.stats.poisson.pmf(choice(p), m) * 15,
                                 scipy.stats.poisson.pmf(choice(p), m) * 30,
                                 scipy.stats.poisson.pmf(choice(p), m) * 5))
-        test_fgs.append(ForwardingGraph(id = fg.id, flows = flows))
+        test_fgs.append(ForwardingGraph(id = fg.id, flows = flows, nsd = NSD()))
 
     for vnf in test_vnfs:
         vnf.find_fgs(test_fgs)
-    test_nsd = NSD(sla = scipy.stats.poisson.pmf(choice(p), m) * fit_nsd.sla)
 
 def init_real_test_data():
     global test_pms
     global test_vnfs
     global test_flavors
     global test_fgs
-    global test_nsd
 
     p = numpy.random.poisson(lam=0.5, size=1000)
     m = numpy.mean(p)
@@ -171,9 +163,9 @@ def init_real_test_data():
 
                         for usage in reader_usage:
                             if (int(usage[2]) == fg_id and int(usage[3]) == vnf_index and usage[13] != "" and usage[10] != "" and usage[14] != ""):
-                                cpu_usage = (float(usage[13]) / pm.cpu) * 100
-                                mem_usage = (float(usage[10]) / pm.mem) * 100
-                                sto_usage = (float(usage[14]) / pm.sto) * 100
+                                cpu_usage = (float(usage[13])/ pm.cpu) * 100 * 2
+                                mem_usage = (float(usage[10])/ pm.mem) * 100 * 2
+                                sto_usage = (float(usage[14])/ pm.sto) * 100 * 2
                                 break
 
                         if (cpu_usage == 0 or mem_usage == 0 or sto_usage == 0):
@@ -218,24 +210,22 @@ def init_real_test_data():
                         dst = fg_vnfs[i + 1]
 
                         traffic = scipy.stats.poisson.pmf(choice(p), m) * 10
-                        latency = scipy.stats.poisson.pmf(choice(p), m) * 15
-                        bnd_usage = scipy.stats.poisson.pmf(choice(p), m) * 30
-                        pkt_loss = scipy.stats.poisson.pmf(choice(p), m) * 5
+                        latency = scipy.stats.poisson.pmf(choice(p), m) * 50
+                        bnd_usage = scipy.stats.poisson.pmf(choice(p), m) * 60
+                        pkt_loss = scipy.stats.poisson.pmf(choice(p), m) * 10
 
                         flows.append(Flow(src.label, dst.label, traffic, latency, bnd_usage, pkt_loss))
 
-                    test_fgs.append(ForwardingGraph(fg_id, flows))
+                    test_fgs.append(ForwardingGraph(fg_id, flows, nsd = NSD()))
 
     for vnf in test_vnfs:
         vnf.find_fgs(test_fgs)
-    test_nsd = NSD(sla = scipy.stats.poisson.pmf(choice(p), m) * fit_nsd.sla)
 
 def parse_fit_csvs():
     global fit_pms
     global fit_vnfs
     global fit_flavors
     global fit_fgs
-    global fit_nsd
 
     with open("input/vnfs-fit.csv", "rb") as file:
         reader = csv.reader(file, delimiter = ";")
@@ -259,7 +249,7 @@ def parse_fit_csvs():
 
             vnf = VNF(pm, flavor,
                         id = vnf_id,
-                        type = vnf_type,
+                        type = next((x for x in VNF.types if vnf_type == x[1]), choice(VNF.types)),
                         vm_cpu = float(vm_data[0]),
                         vm_mem = float(vm_data[1]),
                         vm_sto = float(vm_data[2]),
@@ -274,13 +264,14 @@ def parse_fit_csvs():
             fg_id = int(row[0])
             fg_num_flows = int(row[1])
             flows = []
+            nsd = None
             for i in range(fg_num_flows):
                 flow_data = next(reader)
                 flow = Flow(flow_data[0], flow_data[1], float(flow_data[2]), float(flow_data[3]), float(flow_data[4]), float(flow_data[5]))
                 flows.append(flow)
-                if (fit_nsd is None):
-                    fit_nsd = NSD(sla = float(flow_data[6]))
-            fit_fgs.append(ForwardingGraph(fg_id, flows = flows))
+                if (nsd is None):
+                    nsd = NSD(sla = float(flow_data[6]))
+            fit_fgs.append(ForwardingGraph(fg_id, flows = flows, nsd = nsd))
 
     for vnf in fit_vnfs:
         vnf.find_fgs(fit_fgs)
@@ -290,7 +281,6 @@ def parse_test_csvs():
     global test_vnfs
     global test_flavors
     global test_fgs
-    global test_nsd
 
     with open("input/vnfs-test.csv", "rb") as file:
         reader = csv.reader(file, delimiter = ";")
@@ -314,7 +304,7 @@ def parse_test_csvs():
 
             vnf = VNF(pm, flavor,
                         id = vnf_id,
-                        type = vnf_type,
+                        type = next((x for x in VNF.types if vnf_type == x[1]), choice(VNF.types)),
                         vm_cpu = float(vm_data[0]),
                         vm_mem = float(vm_data[1]),
                         vm_sto = float(vm_data[2]),
@@ -329,18 +319,19 @@ def parse_test_csvs():
             fg_id = int(row[0])
             fg_num_flows = int(row[1])
             flows = []
+            nsd = None
             for i in range(fg_num_flows):
                 flow_data = next(reader)
                 flow = Flow(flow_data[0], flow_data[1], float(flow_data[2]), float(flow_data[3]), float(flow_data[4]), float(flow_data[5]))
                 flows.append(flow)
-                if (test_nsd is None):
-                    test_nsd = NSD(sla = float(flow_data[6]))
-            test_fgs.append(ForwardingGraph(fg_id, flows = flows))
+                if (nsd is None):
+                    nsd = NSD(sla = float(flow_data[6]))
+            test_fgs.append(ForwardingGraph(fg_id, flows = flows, nsd = nsd))
 
     for vnf in test_vnfs:
         vnf.find_fgs(test_fgs)
 
-def write_data_csvs(scope, vnfs, fgs, nsd):
+def write_data_csvs(scope, vnfs, fgs):
     with open("input/vnfs-" + scope + ".csv", "wb") as file:
         writer = csv.writer(file, delimiter = ";")
         for vnf in vnfs:
@@ -358,7 +349,7 @@ def write_data_csvs(scope, vnfs, fgs, nsd):
             fg_row = [fg.id, len(fg.flows)]
             writer.writerow(fg_row)
             for flow in fg.flows:
-                flow_row = [flow.src, flow.dst, flow.traffic, flow.latency, flow.bnd_usage, flow.pkt_loss, nsd.sla]
+                flow_row = [flow.src, flow.dst, flow.traffic, flow.latency, flow.bnd_usage, flow.pkt_loss, fg.nsd.sla]
                 writer.writerow(flow_row)
 
 def init_fit_db():
@@ -366,12 +357,10 @@ def init_fit_db():
     global fit_vnfs
     global fit_flavors
     global fit_fgs
-    global fit_nsd
 
     global nn_fit_data
     global nn_fit_affinity
 
-    nsd = fit_nsd
     pms = list(fit_pms)
     vnfs = list(fit_vnfs)
     flavors = list(fit_flavors)
@@ -380,18 +369,19 @@ def init_fit_db():
     num_good = 0
     num_medium = 0
     num_bad = 0
-    num_fit = 1000
+    num_fit = 3000
 
     with open("input/nn_fit.csv", "wb") as file:
         writer = csv.writer(file, delimiter = ";")
         while (True):
             if (num_bad < num_fit or num_medium < num_fit or num_good < num_fit):
+                print(num_bad, num_medium, num_good)
                 if (init):
-                    pms, flavors, vnfs, fgs, nsd = init_fit_data()
+                    pms, flavors, vnfs, fgs = init_fit_data()
                     fit_pms += pms
                     fit_flavors += flavors
-                    fit_nsd = nsd
-                print(num_bad, num_medium, num_good)
+                elif (nn_fit_affinity):
+                    break
             else:
                 break
 
@@ -405,7 +395,7 @@ def init_fit_db():
                         same_fg = True
                         flow = next((x for x in fg.flows if ((x.src == vnf_a.label and x.dst == vnf_b.label) or (x.src == vnf_b.label and x.dst == vnf_a.label))), None)
                         if (flow is not None):
-                            affinity = affinity_measurement(vnf_a, vnf_b, fg, nsd)["result"]
+                            affinity = affinity_measurement(vnf_a, vnf_b, fg)["result"]
                             write = False
 
                             if (affinity <= 0.30 and num_bad < num_fit):
@@ -421,9 +411,9 @@ def init_fit_db():
                                 write = True
 
                             if (write):
-                                features = get_nn_features(vnf_a, vnf_b, fg, nsd)
+                                features = get_nn_features(vnf_a, vnf_b, fg)
                                 writer.writerow(features + [affinity])
-                                nn_fit_data.append((vnf_a, vnf_b, fg, fit_nsd))
+                                nn_fit_data.append((vnf_a, vnf_b, fg))
                                 nn_fit_affinity.append(affinity)
                                 if (fg not in fit_fgs):
                                     fit_fgs.append(fg)
@@ -434,25 +424,25 @@ def init_fit_db():
 
                     same_pm = vnf_a.pm.id == vnf_b.pm.id
                     if (same_fg == False and same_pm == True):
-                        affinity = affinity_measurement(vnf_a, vnf_b, None, nsd)["pm"]
+                        affinity = affinity_measurement(vnf_a, vnf_b, None)["pm"]
                         write = False
 
-                        if (affinity <= 0.15 and num_bad < num_fit):
+                        if (affinity <= 0.30 and num_bad < num_fit):
                             num_bad += 1
                             write = True
 
-                        if (0.425 <= affinity and affinity <= 0.575 and num_medium < num_fit):
+                        if (0.30 <= affinity and affinity <= 0.60 and num_medium < num_fit):
                             num_medium += 1
                             write = True
 
-                        if (affinity >= 0.85 and num_good < num_fit):
+                        if (affinity >= 0.60 and num_good < num_fit):
                             num_good += 1
                             write = True
 
                         if (write):
-                            features = get_nn_features(vnf_a, vnf_b, None, nsd)
+                            features = get_nn_features(vnf_a, vnf_b, None)
                             writer.writerow(features + [affinity])
-                            nn_fit_data.append((vnf_a, vnf_b, None, fit_nsd))
+                            nn_fit_data.append((vnf_a, vnf_b, None))
                             nn_fit_affinity.append(affinity)
                             if (vnf_a not in fit_vnfs):
                                 fit_vnfs.append(vnf_a)
@@ -460,14 +450,13 @@ def init_fit_db():
                                 fit_vnfs.append(vnf_b)
 
     if (init):
-        write_data_csvs("fit", fit_vnfs, fit_fgs, nsd)
+        write_data_csvs("fit", fit_vnfs, fit_fgs)
 
 def init_test_db():
     global fit_pms
     global test_vnfs
     global test_flavors
     global test_fgs
-    global test_nsd
 
     if (init):
         if (real):
@@ -492,26 +481,26 @@ def init_test_db():
                     same_fg = True
                     flow = next((x for x in fg.flows if ((x.src == vnf_a.label and x.dst == vnf_b.label) or (x.src == vnf_b.label and x.dst == vnf_a.label))), None)
                     if (flow is not None):
-                        affinity = affinity_measurement(vnf_a, vnf_b, fg, test_nsd)["result"]
+                        affinity = affinity_measurement(vnf_a, vnf_b, fg)["result"]
                         if (num_tests < max_tests):
-                            features = get_nn_features(vnf_a, vnf_b, fg, test_nsd)
+                            features = get_nn_features(vnf_a, vnf_b, fg)
                             writer.writerow(features + [affinity])
-                            nn_test_data.append((vnf_a, vnf_b, fg, test_nsd))
+                            nn_test_data.append((vnf_a, vnf_b, fg))
                             num_tests += 1
 
                 same_pm = vnf_a.pm.id == vnf_b.pm.id
                 if (same_fg == False and same_pm == True):
-                    affinity = affinity_measurement(vnf_a, vnf_b, None, test_nsd)["pm"]
+                    affinity = affinity_measurement(vnf_a, vnf_b, None)["pm"]
                     if (num_tests < max_tests):
-                        features = get_nn_features(vnf_a, vnf_b, None, test_nsd)
+                        features = get_nn_features(vnf_a, vnf_b, None)
                         writer.writerow(features + [affinity])
-                        nn_test_data.append((vnf_a, vnf_b, None, test_nsd))
+                        nn_test_data.append((vnf_a, vnf_b, None))
                         num_tests += 1
             if (num_tests >= max_tests):
                 break
 
     if (init):
-        write_data_csvs("test", test_vnfs, test_fgs, test_nsd)
+        write_data_csvs("test", test_vnfs, test_fgs)
 
 
 def fit():
@@ -519,11 +508,13 @@ def fit():
     global nn_fit_data
     global nn_fit_affinity
     global nn_fit_data_array
+    global min_max_scaler
 
     for row in nn_fit_data:
-        nn_fit_data_array.append(get_nn_features(row[0], row[1], row[2], row[3]))
+        nn_fit_data_array.append(get_nn_features(row[0], row[1], row[2]))
 
-    neural_net.fit(nn_fit_data_array, nn_fit_affinity)
+    #print min_max_scaler.fit_transform(nn_fit_data_array)
+    neural_net.fit(min_max_scaler.fit_transform(nn_fit_data_array), nn_fit_affinity)
 
 def test():
     global criteria
@@ -531,26 +522,29 @@ def test():
     global nn_test_data
     global nn_test_affinity_static
     global nn_predicted_affinity
+    global min_max_scaler
 
     for criterion in criteria:
         if (criterion.type == "dynamic"):
             criterion.weight = 0
 
     for test in nn_test_data:
-        affinity = affinity_measurement(test[0], test[1], test[2], test[3])["result" if test[2] != None else "pm"]
+        affinity = affinity_measurement(test[0], test[1], test[2])["result" if test[2] != None else "pm"]
         nn_test_affinity_static.append(affinity)
 
     for criterion in criteria:
         criterion.weight = 1
 
     for test in nn_test_data:
-        real_affinity = affinity_measurement(test[0], test[1], test[2], test[3])["result" if test[2] != None else "pm"]
+        real_affinity = affinity_measurement(test[0], test[1], test[2])["result" if test[2] != None else "pm"]
         nn_test_affinity_dynamic.append(real_affinity)
-        data = get_nn_features(test[0], test[1], test[2], test[3])
-        predicted_affinity = neural_net.predict([data])[0]
+        data = get_nn_features(test[0], test[1], test[2])
+        #print min_max_scaler.transform([data])
+        predicted_affinity = neural_net.predict(min_max_scaler.transform([data]))[0]
         nn_predicted_affinity.append(predicted_affinity)
-        #if (abs((predicted_affinity/real_affinity) - 1) <= 0.04):
-            #learn(test, predicted_affinity)
+        if (abs((predicted_affinity/real_affinity) - 1) <= 0.1):
+            print abs((predicted_affinity/real_affinity) - 1)
+            learn(test, predicted_affinity)
 
 def write_results():
     global nn_test_affinity
@@ -567,10 +561,11 @@ def write_results():
 
         for test, test_dynamic, test_static, test_predicted in zip(nn_test_data, nn_test_affinity_dynamic, nn_test_affinity_static, nn_predicted_affinity):
 
-            data = csv.get_row_data(test[0], test[1], test[2], test[3])
+            data = csv.get_row_data(test[0], test[1], test[2])
             csv.write_row(data + [test_dynamic, test_static, test_predicted])
 
         print("R Squared 1_3: ", str(rsquared(nn_test_affinity_dynamic, nn_predicted_affinity)))
+        print("R Squared 1_2: ", str(rsquared(nn_test_affinity_dynamic, nn_test_affinity_static)))
         print("R Squared 2_3: ", str(rsquared(nn_test_affinity_static, nn_predicted_affinity)))
 
 print "init: " + str(init)

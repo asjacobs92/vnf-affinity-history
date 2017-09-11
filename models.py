@@ -4,7 +4,6 @@ import scipy
 import numpy
 import sys
 
-
 class Criterion(object):
     def __init__(self, name, type, scope, weight, formula):
         self.name = name
@@ -30,13 +29,13 @@ class VNF(object):
         self.id = VNF.class_sequence if id == 0 else id
         if (type == 0):
             self.type = choice(VNF.types)
-            self.vm_cpu = randrange(100, 2000, 100)
-            self.vm_mem = randrange(100, 2000, 100)
-            self.vm_sto = randrange(100, 2000, 100)
+            self.vm_cpu = numpy.random.uniform(0,1,1)[0] * 2000 #randrange(100, 2000, 100)
+            self.vm_mem = numpy.random.uniform(0,1,1)[0] * 2000 #randrange(100, 2000, 100)
+            self.vm_sto = numpy.random.uniform(0,1,1)[0] * 2000 #randrange(100, 2000, 100)
 
-            self.cpu_usage = randint(1,30)
-            self.mem_usage = randint(1,30)
-            self.sto_usage = randint(1,30)
+            self.cpu_usage = numpy.random.uniform(0,1,1)[0] * 40 #randint(1,40)
+            self.mem_usage = numpy.random.uniform(0,1,1)[0] * 40 #randint(1,40)
+            self.sto_usage = numpy.random.uniform(0,1,1)[0] * 40 #randint(1,40)
         else:
             self.type = type
             self.vm_cpu = vm_cpu
@@ -75,10 +74,11 @@ class PhysicalMachine(object):
 
 class ForwardingGraph(object):
     class_sequence = 1
-    def __init__(self, id = 0, flows = None):
+    def __init__(self, id = 0, flows = None, nsd = None):
         self.id = ForwardingGraph.class_sequence if id == 0 else id
         self.label = "fg"
         self.flows = flows
+        self.nsd = nsd
 
         ForwardingGraph.class_sequence += 1
 
@@ -95,8 +95,8 @@ class Flow(object):
             self.pkt_loss = pkt_loss
         else:
             self.traffic = randint(1,10)
-            self.latency = randint(1,15)
-            self.bnd_usage = randint(1, 30)
+            self.latency = randint(1,30)
+            self.bnd_usage = randint(1, 50)
             self.pkt_loss = randint(1, 5)
         Flow.class_sequence += 1
 
@@ -109,13 +109,13 @@ class Flavor(object):
             self.min_mem = min_mem
             self.min_sto = min_sto
         else:
-            self.min_cpu = randrange(100, 2000, 100)
-            self.min_mem = randrange(100, 2000, 100)
-            self.min_sto = randrange(100, 2000, 100)
+            self.min_cpu = numpy.random.uniform(0,1,1)[0] * 2000 #randrange(1000, 2000, 100)
+            self.min_mem = numpy.random.uniform(0,1,1)[0] * 2000 #randrange(1000, 2000, 100)
+            self.min_sto = numpy.random.uniform(0,1,1)[0] * 2000 #randrange(1000, 2000, 100)
         Flavor.class_sequence += 1
 
 class NSD(object):
     def __init__(self, sla = 0.0, conflicts = []):
-        self.sla = randint(25, 100) if (sla == 0.0) else sla
-        self.conflicts = []
+        self.sla = numpy.random.uniform(0,1,1)[0] * 50 if (sla == 0.0) else sla
+        self.conflicts = conflicts
         self.conflicts.append({'vnf_a': 2,  'vnf_b': 3})
