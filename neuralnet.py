@@ -1,16 +1,17 @@
 import numpy
 import scipy
-from criteria import *
+
+from affinity import *
 from sklearn.neural_network import MLPClassifier
 from sklearn.neural_network import MLPRegressor
 from sklearn.naive_bayes import GaussianNB
 from sklearn import preprocessing
 
 neural_net = MLPRegressor(solver='lbfgs', activation='tanh', hidden_layer_sizes=(12, 6), alpha=0.001, batch_size='auto',
-                           learning_rate='adaptive', learning_rate_init=0.01, power_t=0.5, max_iter=1000, shuffle=True,
-                           random_state=9,  tol=0.0001, verbose=False, warm_start=False, momentum=0.9,
-                           nesterovs_momentum=True, early_stopping=False, validation_fraction=0.1, beta_1=0.9, beta_2=0.999,
-                           epsilon=1e-08)
+                          learning_rate='adaptive', learning_rate_init=0.01, power_t=0.5, max_iter=1000, shuffle=True,
+                          random_state=9,  tol=0.0001, verbose=False, warm_start=False, momentum=0.9,
+                          nesterovs_momentum=True, early_stopping=False, validation_fraction=0.1, beta_1=0.9, beta_2=0.999,
+                          epsilon=1e-08)
 
 min_max_scaler = preprocessing.MinMaxScaler()
 
@@ -22,6 +23,7 @@ nn_test_affinity_static = []
 nn_test_affinity_dynamic = []
 nn_predicted_affinity = []
 nn_predicted_affinity_clean = []
+
 
 def rsquared(x, y):
     slope, intercept, r_value, p_value, std_err = scipy.stats.linregress(x, y)
@@ -50,6 +52,7 @@ def get_nn_features(vnf_a, vnf_b, fg):
     ]
     return values
 
+
 def learn(data, affinity):
     global neural_net
     global nn_fit_data
@@ -61,4 +64,5 @@ def learn(data, affinity):
     nn_fit_affinity.append(affinity)
     nn_fit_data_array.append(get_nn_features(data[0], data[1], data[2]))
 
-    neural_net.fit(min_max_scaler.transform(nn_fit_data_array), nn_fit_affinity)
+    neural_net.fit(min_max_scaler.transform(
+        nn_fit_data_array), nn_fit_affinity)

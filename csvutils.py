@@ -1,5 +1,6 @@
 import csv
-from criteria import *
+from affinity import *
+
 
 class CsvUtils(object):
     def __init__(self, file, dialect=csv.excel):
@@ -56,11 +57,16 @@ class CsvUtils(object):
         vnf_b_after_id = ""
         flow = None
         if (fg is not None):
-            vnf_a_before_id = next((x.src for x in fg.flows if x.dst == vnf_a.label), None) if (fg is not None) else "-1.-1"
-            vnf_a_after_id = next((x.dst for x in fg.flows if x.src == vnf_a.label), None) if (fg is not None) else "-1.-1"
-            vnf_b_before_id = next((x.src for x in fg.flows if x.dst == vnf_b.label), None) if (fg is not None) else "-1.-1"
-            vnf_b_after_id = next((x.dst for x in fg.flows if x.src == vnf_b.label), None) if (fg is not None) else "-1.-1"
-            flow = next((x for x in fg.flows if (x.dst == vnf_a.label and x.src == vnf_b.label) or (x.src == vnf_a.label and x.dst == vnf_b.label)), None)
+            vnf_a_before_id = next((x.src for x in fg.flows if x.dst == vnf_a.label), None) if (
+                fg is not None) else "-1.-1"
+            vnf_a_after_id = next((x.dst for x in fg.flows if x.src == vnf_a.label), None) if (
+                fg is not None) else "-1.-1"
+            vnf_b_before_id = next((x.src for x in fg.flows if x.dst == vnf_b.label), None) if (
+                fg is not None) else "-1.-1"
+            vnf_b_after_id = next((x.dst for x in fg.flows if x.src == vnf_b.label), None) if (
+                fg is not None) else "-1.-1"
+            flow = next((x for x in fg.flows if (x.dst == vnf_a.label and x.src == vnf_b.label) or (
+                x.src == vnf_a.label and x.dst == vnf_b.label)), None)
 
         values = [
             vnf_a.label,
