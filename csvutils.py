@@ -4,7 +4,7 @@ from affinity import *
 
 class CsvUtils(object):
     def __init__(self, file, dialect=csv.excel):
-        self.writer = csv.writer(file, dialect=dialect, delimiter=';')
+        self.writer = csv.writer(file, dialect=dialect, delimiter=',')
 
     def write_row(self, row):
         self.writer.writerow(row)

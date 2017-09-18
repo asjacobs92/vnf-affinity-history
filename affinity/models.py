@@ -61,7 +61,11 @@ class VNF(object):
 
     def find_fgs(self, fgs):
         self.fgs = []
-        self.fgs.append(fgs[self.fg_id])
+        try:
+            self.fgs.append(fgs[self.fg_id])
+            return True
+        except:
+            return False
 
 
 class PhysicalMachine(object):

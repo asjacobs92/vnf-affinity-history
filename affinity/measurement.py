@@ -142,7 +142,10 @@ def affinity_measurement(vnf_a, vnf_b, fg):
             for fg in common_fgs:
                 affinity_result[fg.label] = total_affinity(vnf_a, vnf_b, fg)
         else:
-            affinity_result["pm"] = total_affinity(vnf_a, vnf_b, None)
+            affinity_result['fg'] = "pm"
+            affinity_result['vnf_a'] = vnf_a.label
+            affinity_result['vnf_b'] = vnf_b.label
+            affinity_result["result"] = total_affinity(vnf_a, vnf_b, None)
 
     if (debug):
         print affinity_result

@@ -48,6 +48,8 @@ def read_job_events():
 
             p = Pool()
             fgs = filter(None, p.map(read_fg, list(reader_fgs)))
+            p.close()
+            p.join()
     return fgs
 
 
@@ -100,19 +102,30 @@ def read_vnf(task):
                             min_mem=vm_mem * numpy.random.uniform(0, 1, 1)[0] * 2,
                             min_sto=vm_sto * numpy.random.uniform(0, 1, 1)[0] * 2)
 
-            vnf = VNF(pm=pm,
-                      flavor=flavor,
-                      type=vnf_type,
-                      vm_cpu=vm_cpu,
-                      vm_mem=vm_mem,
-                      vm_sto=vm_sto,
-                      cpu_usage=cpu_usage,
-                      mem_usage=mem_usage,
-                      sto_usage=sto_usage,
-                      index=vnf_index,
-                      timestamp=timestamp,
-                      fg_id=fg_id)
+            with lock:
+                vnf_sequence.value += 1
+                vnf = VNF(pm=pm,
+                          flavor=flavor,
+                          id=vnf_sequence.value,
+                          type=vnf_type,
+                          vm_cpu=vm_cpu,
+                          vm_mem=vm_mem,
+                          vm_sto=vm_sto,
+                          cpu_usage=cpu_usage,
+                          mem_usage=mem_usage,
+                          sto_usage=sto_usage,
+                          index=vnf_index,
+                          timestamp=timestamp,
+                          fg_id=fg_id)
+                print vnf.id
+
     return vnf
+
+
+def init_pool(l, v):
+    global lock, vnf_sequence
+    lock = l
+    vnf_sequence = v
 
 
 def read_task_events():
@@ -120,9 +133,10 @@ def read_task_events():
     for i in range(num_files):
         with open("res/dataset/te-part-0000" + str(i) + "-of-00500.csv", "rb") as file_tasks:
             reader_tasks = csv.reader(file_tasks)
-
-            p = Pool()
-            vnfs = filter(None, p.map(read_vnf, list(reader_tasks)[150000:150050]))
+            p = Pool(initializer=init_pool, initargs=(Lock(), Value('i', 0)))
+            vnfs = filter(None, p.map(read_vnf, list(reader_tasks)))
+            p.close()
+            p.join()
     return vnfs
 
 
@@ -163,7 +177,7 @@ def read():
 
 
 def write():
-    with open("res/input/vnfs2.csv", "wb") as file:
+    with open("res/input/vnfs.csv", "wb") as file:
         writer = csv.writer(file, delimiter=",")
         for vnf in vnfs:
             row = [
@@ -174,7 +188,7 @@ def write():
             ]
             writer.writerow(row)
 
-    with open("res/input/fgs2.csv", "wb") as file:
+    with open("res/input/fgs.csv", "wb") as file:
         writer = csv.writer(file, delimiter=",")
         for fg in fgs:
             fg_row = [fg.id, len(fg.flows)]

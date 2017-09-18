@@ -32,7 +32,9 @@ def parse_vnfs():
     with open("res/input/vnfs2.csv", "rb") as file:
         reader = csv.reader(file, delimiter=",")
         p = Pool()
-        vnfs = p.map(parse_vnf, list(reader))
+        vnfs = p.map(parse_vnf, list(reader)[0:50000])
+        p.close()
+        p.join()
 
     return vnfs
 
