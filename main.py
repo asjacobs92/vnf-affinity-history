@@ -1,21 +1,22 @@
-import scipy
-import numpy
 import itertools
 import pickle
-
 from math import *
-from time import *
-from random import *
-
 from parser import *
-from csvutils import *
-from affinity import *
-from neuralnet import *
+from random import *
+from time import *
 
+import numpy
+import scipy
+
+from affinity import *
+from csvutils import *
+from neuralnet import *
 
 fit_vnfs = []
 test_vnfs = []
 fgs = {}
+
+num_combs = 0
 
 
 def parse_dataset():
@@ -58,31 +59,44 @@ def init_fit_affinity((vnf_a, vnf_b)):
     return None
 
 
-def init_fit_db():
-    global fit_vnfs, nn_fit_data, nn_fit_affinity
+def init_fit_slice(slice):
+    global num_combs, fit_vnfs, nn_fit_data
 
-    combinations = list(itertools.combinations(fit_vnfs, r=2))
-    print "#combs: " + str(len(combinations))
-    with open("res/input/nn_fit.csv", "wb") as file:
-        writer = csv.writer(file, delimiter=",")
+    vnfs_per_proc = int(len(fit_vnfs) / 8)
 
-        #p = Pool(4)
-        # results = p.map(, )
-        print "combinations calculated, creating fit db"
-        for (vnf_a, vnf_b) in combinations:
+    start_index = slice * vnfs_per_proc
+    end_index = (slice + 1) * vnfs_per_proc if slice != 7 else len(fit_vnfs)
+    print(start_index, end_index)
+    for i in range(start_index, end_index):
+        for j in range(i + 1, len(fit_vnfs)):
+            num_combs += 1
+            vnf_a = fit_vnfs[i]
+            vnf_b = fit_vnfs[j]
             result = init_fit_affinity((vnf_a, vnf_b))
             if (result is not None):
-                (vnf_a, vnf_b, fg, affinity) = result
-                features = get_nn_features(vnf_a, vnf_b, fg)
-                nn_fit_affinity.append(affinity)
-                nn_fit_data.append((vnf_a, vnf_b, fg))
-                nn_fit_data_array.append(features)
-                writer.writerow(features + [affinity])
-        # p.close()
-        # p.join()
+                print j
+                nn_fit_data.append(result)
 
+
+def init_fit_db():
+    global nn_fit_data, nn_fit_data_array, nn_fit_affinity
+
+    p = Pool(8)
+    p.map(init_fit_slice, range(8))
+    p.close()
+    p.join()
+    with open("res/input/nn_fit.csv", "wb") as file:
+        writer = csv.writer(file, delimiter=",")
+        for (vnf_a, vnf_b, fg, affinity) in nn_fit_data:
+            print (vnf_a, vnf_b, fg, affinity)
+            nn_fit_data_array.append(get_nn_features(vnf_a, vnf_b, fg))
+            nn_fit_affinity.append(affinity)
+            writer.writerow(get_nn_features(vnf_a, vnf_b, fg) + [affinity])
+
+    print num_combs
     print len(nn_fit_data)
     print len(nn_fit_affinity)
+    print len(nn_fit_data_array)
 
 
 def init_test_affinity((vnf_a, vnf_b)):
@@ -109,17 +123,24 @@ def init_test_affinity((vnf_a, vnf_b)):
 def init_test_db():
     global test_vnfs, nn_test_data
 
-    combinations = list(itertools.combinations(test_vnfs, r=2))
-    print "#combs: " + str(len(combinations))
+    combinations = 0
     with open("res/input/nn_test.csv", "wb") as file:
         writer = csv.writer(file, delimiter=",")
-        print "combinations calculated, creating test db"
-        for (vnf_a, vnf_b) in combinations:
-            result = init_test_affinity((vnf_a, vnf_b))
-            if (result is not None):
-                (vnf_a, vnf_b, fg, affinity) = result
-                nn_test_data.append((vnf_a, vnf_b, fg))
-                writer.writerow(get_nn_features(vnf_a, vnf_b, fg) + [affinity])
+
+        for i in range(0, len(fit_vnfs)):
+            for j in range(i + 1, len(fit_vnfs)):
+                vnf_a = fit_vnfs[i]
+                vnf_b = fit_vnfs[j]
+                result = init_test_affinity((vnf_a, vnf_b))
+                if (result is not None):
+                    (vnf_a, vnf_b, fg, affinity) = result
+                    nn_test_data.append((vnf_a, vnf_b, fg))
+                    writer.writerow(get_nn_features(vnf_a, vnf_b, fg) + [affinity])
+
+                combinations += 1
+                if (combinations % 10000 == 0):
+                    print combinations
+
     print len(nn_test_data)
 
 
@@ -158,7 +179,7 @@ def test():
 
         if (abs((predicted_affinity / real_affinity) - 1) <= 0.01):
             print abs((predicted_affinity / real_affinity) - 1)
-            #learn(test, predicted_affinity)
+            # learn(test, predicted_affinity)
 
 
 def write_results():
@@ -193,7 +214,7 @@ start = time()
 print "generating fit database"
 init_fit_db()
 print "generating test database"
-init_test_db()
+# init_test_db()
 end = time()
 print(end - start)
 

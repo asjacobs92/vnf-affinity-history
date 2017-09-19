@@ -1,6 +1,7 @@
 import csv
-from affinity import *
 from multiprocessing import *
+
+from affinity import *
 
 
 def parse_vnf(row):
@@ -29,10 +30,10 @@ def parse_vnf(row):
 
 def parse_vnfs():
     vnfs = []
-    with open("res/input/vnfs2.csv", "rb") as file:
+    with open("res/input/vnfs.csv", "rb") as file:
         reader = csv.reader(file, delimiter=",")
         p = Pool()
-        vnfs = p.map(parse_vnf, list(reader)[0:50000])
+        vnfs = p.map(parse_vnf, list(reader)[0:1000])
         p.close()
         p.join()
 
@@ -41,7 +42,7 @@ def parse_vnfs():
 
 def parse_fgs():
     fgs = {}
-    with open("res/input/fgs2.csv", "rb") as file:
+    with open("res/input/fgs.csv", "rb") as file:
         reader = csv.reader(file, delimiter=",")
         for row in reader:
             fg_id = int(row[0])
