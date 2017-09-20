@@ -19,7 +19,6 @@ nn_fit_data = []
 nn_validate_data = []
 nn_test_data = []
 
-
 def rsquared(x, y):
     slope, intercept, r_value, p_value, std_err = scipy.stats.linregress(x, y)
     return r_value**2

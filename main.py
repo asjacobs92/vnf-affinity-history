@@ -125,6 +125,7 @@ def fit():
 
 def validate():
     global neural_net, min_max_scaler, nn_fit_data, nn_validate_data, nn_test_data
+    global best_rsquared, best_fit_data, best_test_data
 
     real_affinity = []
     predicted_affinity = []
@@ -133,13 +134,15 @@ def validate():
         real_affinity.append(affinity)
         predicted_affinity.append(neural_net.predict(min_max_scaler.transform([get_nn_features(vnf_a, vnf_b, fg)]))[0])
 
-    rsquared = rsquared(real_affinity, predicted_affinity)
-    print "Validation R-squared value: " + str(rsquared)
-    if (rsquared > best_fit_data):
+    rsquared_value = rsquared(real_affinity, predicted_affinity)
+    print "Validation R-squared value: " + str(rsquared_value)
+    if (rsquared_value > best_rsquared):
+        print "Best rsquared found! " + str(rsquared_value)
+        best_rsquared = rsquared_value
         best_fit_data = nn_fit_data
         best_test_data = nn_test_data
 
-    return (rsquared(real_affinity, predicted_affinity) > 0.6) or (num_iter >= iter_limit)
+    return (rsquared_value > 0.6) or (num_iter >= iter_limit)
 
 
 def test():
@@ -200,6 +203,7 @@ if __name__ == "__main__":
             break
 
     if (num_iter >= iter_limit):
+        print "Using best case scenario with rsquared: " + str(best_rsquared)
         nn_fit_data = best_fit_data
         nn_test_data = best_test_data
         fit()
