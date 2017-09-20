@@ -12,11 +12,8 @@ from affinity import *
 from csvutils import *
 from neuralnet import *
 
-fit_vnfs = []
-test_vnfs = []
+vnfs = []
 fgs = {}
-
-num_combs = 0
 
 
 def parse_dataset():
@@ -37,7 +34,7 @@ def parse_dataset():
     print "test vnfs " + str(len(test_vnfs))
 
 
-def init_fit_affinity((vnf_a, vnf_b)):
+def init_affinity((vnf_a, vnf_b)):
     same_fg = False
     for fg in filter(lambda x: x.id in [y.id for y in vnf_b.fgs], vnf_a.fgs):
         same_fg = True
@@ -73,7 +70,7 @@ def init_fit_slice(slice):
         for j in range(i + 1, len(fit_vnfs)):
             vnf_a = fit_vnfs[i]
             vnf_b = fit_vnfs[j]
-            result = init_fit_affinity((vnf_a, vnf_b))
+            result = init_affinity((vnf_a, vnf_b))
             if (result is not None):
                 fit_data.append(result)
 
@@ -100,27 +97,6 @@ def init_fit_db():
     print len(nn_fit_data_array)
 
 
-def init_test_affinity((vnf_a, vnf_b)):
-    same_fg = False
-    for fg in filter(lambda x: x.id in [y.id for y in vnf_b.fgs], vnf_a.fgs):
-        same_fg = True
-        flow = None
-        for f in fg.flows:
-            if ((f.src == vnf_a.label and f.dst == vnf_b.label) or (f.src == vnf_b.label and f.dst == vnf_a.label)):
-                flow = f
-                break
-        if (flow is not None):
-            affinity = affinity_measurement(vnf_a, vnf_b, fg)["result"]
-            return (vnf_a, vnf_b, fg, affinity)
-
-    same_pm = vnf_a.pm.id == vnf_b.pm.id
-    if (same_fg == False and same_pm == True):
-        affinity = affinity_measurement(vnf_a, vnf_b, None)["result"]
-        return (vnf_a, vnf_b, None, affinity)
-
-    return None
-
-
 def init_test_slice(slice):
     global test_vnfs
 
@@ -135,7 +111,7 @@ def init_test_slice(slice):
         for j in range(i + 1, len(test_vnfs)):
             vnf_a = test_vnfs[i]
             vnf_b = test_vnfs[j]
-            result = init_test_affinity((vnf_a, vnf_b))
+            result = init_affinity((vnf_a, vnf_b))
             if (result is not None):
                 test_data.append(result)
 
