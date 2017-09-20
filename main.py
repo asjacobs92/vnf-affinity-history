@@ -10,10 +10,12 @@ from parser import *
 from affinity import *
 from neuralnet import *
 from multiprocessing import *
+from multiprocessing.pool import ThreadPool
 
 vnfs = []
 fgs = {}
 
+init = False
 dataset = []
 
 num_iter = 0
@@ -65,7 +67,6 @@ def init_dataset_slice(slice):
     vnfs_per_proc = int(len(vnfs) / cpu_count())
     start_index = slice * vnfs_per_proc
     end_index = (slice + 1) * vnfs_per_proc if slice != 7 else len(vnfs)
-    print(start_index, end_index)
     for i in range(start_index, end_index):
         for j in range(i + 1, len(vnfs)):
             vnf_a = vnfs[i]
@@ -80,7 +81,7 @@ def init_dataset_slice(slice):
 def init_dataset():
     global dataset
 
-    p = Pool(cpu_count())
+    p = ThreadPool(cpu_count())
     list_of_slices = p.map(init_dataset_slice, range(cpu_count()))
     dataset = [y for x in list_of_slices for y in x]
     p.close()
@@ -89,8 +90,7 @@ def init_dataset():
     with open("res/input/nn_dataset.csv", "wb") as file:
         writer = csv.writer(file, delimiter=",")
         for (vnf_a, vnf_b, fg, affinity) in dataset:
-            writer.writerow(get_nn_features(vnf_a, vnf_b, fg) + [affinity])
-
+            writer.writerow(get_nn_features(vnf_a, vnf_b, fg) + [vnf_a.id, vnf_b.id, fg.id if fg is not None else 0, affinity])
 
 def split_dataset():
     global dataset, nn_fit_data, nn_validate_data, nn_test_data
@@ -182,11 +182,19 @@ if __name__ == "__main__":
     end = time()
     print "Parsing time (s): " + str(end - start)
 
-    print "Initializing affinity dataset"
-    start = time()
-    init_dataset()
-    end = time()
-    print "Initializing time (s): " + str(end - start)
+    if (init):
+        print "Initializing affinity dataset"
+        start = time()
+        init_dataset()
+        end = time()
+        print "Initializing time (s): " + str(end - start)
+    else:
+        print "Parsing affinity dataset"
+        start = time()
+        dataset = parse_dataset(vnfs, fgs)
+        print len(dataset)
+        end = time()
+        print "Parsing time (s): " + str(end - start)
 
     start = time()
     while True:

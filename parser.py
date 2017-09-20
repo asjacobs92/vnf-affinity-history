@@ -1,5 +1,6 @@
 import csv
-from multiprocessing import *
+from functools import *
+from multiprocessing.pool import ThreadPool
 
 from affinity import *
 
@@ -32,8 +33,8 @@ def parse_vnfs():
     vnfs = []
     with open("res/input/vnfs.csv", "rb") as file:
         reader = csv.reader(file, delimiter=",")
-        p = Pool()
-        vnfs = p.map(parse_vnf, list(reader)[0:1000])
+        p = ThreadPool()
+        vnfs = p.map(parse_vnf, list(reader)[0:5000])
         p.close()
         p.join()
 
@@ -59,3 +60,34 @@ def parse_fgs():
             fgs[fg_id] = ForwardingGraph(fg_id, flows=flows, nsd=nsd)
 
     return fgs
+
+def find_vnf(vnf_id, vnfs):
+    for vnf in vnfs:
+        if (vnf.id == vnf_id):
+            return vnf
+    return None
+
+def parse_affinity_case(vnfs, fgs, case):
+    vnf_a_id = int(case[12])
+    vnf_b_id = int(case[13])
+    fg_id = int(case[14])
+    affinity = float(case[15])
+
+    vnf_a = find_vnf(vnf_a_id, vnfs)
+    vnf_b = find_vnf(vnf_b_id, vnfs)
+    fg = fgs[fg_id] if fg_id != 0 else None
+    return (vnf_a, vnf_b, fg, affinity)
+
+
+def parse_dataset(vnfs, fgs):
+    dataset = []
+
+    with open("res/input/nn_dataset.csv", "rb") as file:
+        reader = csv.reader(file, delimiter=",")
+        p = ThreadPool()
+        func = partial(parse_affinity_case, vnfs, fgs)
+        dataset = p.map(func, list(reader))
+        p.close()
+        p.join()
+
+    return dataset

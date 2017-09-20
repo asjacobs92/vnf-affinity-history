@@ -9,7 +9,7 @@ from math import *
 from time import *
 from random import *
 from affinity import *
-from multiprocessing import *
+from multiprocessing.ThreadPool import ThreadPool
 
 vnfs = []
 fgs = []
@@ -46,7 +46,7 @@ def read_job_events():
         with open("res/dataset/je-part-0000" + str(i) + "-of-00500.csv", "rb") as file_fgs:
             reader_fgs = csv.reader(file_fgs)
 
-            p = Pool()
+            p = ThreadPool()
             fgs = filter(None, p.map(read_fg, list(reader_fgs)))
             p.close()
             p.join()
@@ -122,7 +122,7 @@ def read_vnf(task):
     return vnf
 
 
-def init_pool(l, v):
+def init_ThreadPool(l, v):
     global lock, vnf_sequence
     lock = l
     vnf_sequence = v
@@ -133,7 +133,7 @@ def read_task_events():
     for i in range(num_files):
         with open("res/dataset/te-part-0000" + str(i) + "-of-00500.csv", "rb") as file_tasks:
             reader_tasks = csv.reader(file_tasks)
-            p = Pool(initializer=init_pool, initargs=(Lock(), Value('i', 0)))
+            p = ThreadPool(initializer=init_ThreadPool, initargs=(Lock(), Value('i', 0)))
             vnfs = filter(None, p.map(read_vnf, list(reader_tasks)))
             p.close()
             p.join()
@@ -155,7 +155,7 @@ def read_machine_events():
     pms = []
     with open("res/dataset/me-part-00000-of-00001.csv", "rb") as file_pms:
         reader_pms = csv.reader(file_pms)
-        p = Pool()
+        p = ThreadPool()
         pms = filter(None, p.map(read_pm, list(reader_pms)))
     return pms
 
