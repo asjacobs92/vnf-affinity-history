@@ -16,9 +16,12 @@ fgs = {}
 
 dataset = []
 
-num_iter = 10
+num_iter = 0
 iter_limit = 20
 
+best_rsquared = 0
+best_fit_data = []
+best_test_data = []
 
 def parse():
     global fgs, vnfs
@@ -121,7 +124,7 @@ def fit():
 
 
 def validate():
-    global neural_net, min_max_scaler, nn_validate_data
+    global neural_net, min_max_scaler, nn_fit_data, nn_validate_data, nn_test_data
 
     real_affinity = []
     predicted_affinity = []
@@ -130,7 +133,12 @@ def validate():
         real_affinity.append(affinity)
         predicted_affinity.append(neural_net.predict(min_max_scaler.transform([get_nn_features(vnf_a, vnf_b, fg)]))[0])
 
-    print "Validation R-squared value: " + str(rsquared(real_affinity, predicted_affinity))
+    rsquared = rsquared(real_affinity, predicted_affinity)
+    print "Validation R-squared value: " + str(rsquared)
+    if (rsquared > best_fit_data):
+        best_fit_data = nn_fit_data
+        best_test_data = nn_test_data
+
     return (rsquared(real_affinity, predicted_affinity) > 0.6) or (num_iter >= iter_limit)
 
 
@@ -190,6 +198,11 @@ if __name__ == "__main__":
         print "Starting validation"
         if (validate()):
             break
+
+    if (num_iter >= iter_limit):
+        nn_fit_data = best_fit_data
+        nn_test_data = best_test_data
+        fit()
 
     print "Starting test"
     test()
