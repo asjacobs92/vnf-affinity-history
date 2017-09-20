@@ -16,13 +16,8 @@ neural_net = MLPRegressor(solver='lbfgs', activation='tanh', hidden_layer_sizes=
 min_max_scaler = preprocessing.MinMaxScaler()
 
 nn_fit_data = []
-nn_fit_data_array = []
-nn_fit_affinity = []
+nn_validate_data = []
 nn_test_data = []
-nn_test_affinity_static = []
-nn_test_affinity_dynamic = []
-nn_predicted_affinity = []
-nn_predicted_affinity_clean = []
 
 
 def rsquared(x, y):
@@ -51,18 +46,3 @@ def get_nn_features(vnf_a, vnf_b, fg):
         fg.nsd.sla if (fg is not None) else 0,
     ]
     return values
-
-
-def learn(data, affinity):
-    global neural_net
-    global nn_fit_data
-    global nn_fit_affinity
-    global nn_fit_data_array
-    global min_max_scaler
-
-    nn_fit_data.append(data)
-    nn_fit_affinity.append(affinity)
-    nn_fit_data_array.append(get_nn_features(data[0], data[1], data[2]))
-
-    neural_net.fit(min_max_scaler.transform(
-        nn_fit_data_array), nn_fit_affinity)
