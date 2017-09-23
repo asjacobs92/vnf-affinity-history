@@ -12,7 +12,7 @@ from affinity import *
 from neuralnet import *
 from util import *
 
-vnfs = []
+vnfs = {}
 fgs = {}
 
 init = False
@@ -34,7 +34,8 @@ def parse():
     fgs = parse_fgs()
     print len(fgs)
 
-    vnfs = filter(lambda x: x.find_fgs(fgs), vnfs)
+    #print vnfs
+    vnfs = {k: v for k, v in vnfs.iteritems() if v.find_fgs(fgs)}
     print len(vnfs)
 
 
@@ -65,13 +66,14 @@ def init_dataset_slice(slice):
 
     dataset_slice = []
 
+    vnfs_list = vnfs.values()
     vnfs_per_proc = int(len(vnfs) / cpu_count())
     start_index = slice * vnfs_per_proc
     end_index = (slice + 1) * vnfs_per_proc if slice != 7 else len(vnfs)
     for i in range(start_index, end_index):
         for j in range(i + 1, len(vnfs)):
-            vnf_a = vnfs[i]
-            vnf_b = vnfs[j]
+            vnf_a = vnfs_list[i]
+            vnf_b = vnfs_list[j]
             result = init_affinity((vnf_a, vnf_b))
             if (result is not None):
                 dataset_slice.append(result)

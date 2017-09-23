@@ -32,11 +32,12 @@ def parse_vnf(row):
 
 
 def parse_vnfs():
-    vnfs = []
+    vnfs_list = []
     with open("res/input/vnfs.csv", "rb") as file:
         reader = csv.reader(file, delimiter=",")
         p = ThreadPool()
-        vnfs = p.map(parse_vnf, list(reader))
+        vnfs_list = p.map(parse_vnf, list(reader))
+        vnfs = dict((x.id, x) for x in vnfs_list)
         p.close()
         p.join()
 
@@ -65,21 +66,14 @@ def parse_fgs():
     return fgs
 
 
-def find_vnf(vnf_id, vnfs):
-    for vnf in vnfs:
-        if (vnf.id == vnf_id):
-            return vnf
-    return None
-
-
 def parse_affinity_case(vnfs, fgs, case):
     vnf_a_id = int(case[len(case) - 4])
     vnf_b_id = int(case[len(case) - 3])
     fg_id = int(case[len(case) - 2])
     affinity = float(case[len(case) - 1])
 
-    vnf_a = find_vnf(vnf_a_id, vnfs)
-    vnf_b = find_vnf(vnf_b_id, vnfs)
+    vnf_a = vnfs[vnf_a_id]
+    vnf_b = vnfs[vnf_b_id]
     fg = fgs[fg_id] if fg_id != 0 else None
     return (vnf_a, vnf_b, fg, affinity)
 
