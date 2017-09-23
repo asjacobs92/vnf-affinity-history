@@ -1,9 +1,9 @@
-import scipy
-import numpy
-
-from util import *
-from debug import *
 from random import *
+
+import numpy
+import scipy
+
+from debug import *
 
 
 class Criterion(object):
@@ -18,18 +18,18 @@ class Criterion(object):
 class VNF(object):
     class_sequence = 1
     types = [
-        ('load balancer', 1),
-        ('dpi', 2),
-        ('firewall', 3),
-        ('ips', 4),
-        ('ids', 5),
-        ('nat', 6),
-        ('traffic counter', 7),
-        ('cache', 8),
-        ('proxy', 9)
+        ('load balancer', 1, 0.1, 10.0, 20.0),
+        ('dpi', 2, 0.2, 40.0, 100.0),
+        ('firewall', 3, 0.3, 20.0, 40.0),
+        ('ips', 4, 0.4, 30.0, 50.0),
+        ('ids', 5, 0.5, 30.0, 60.0),
+        ('nat', 6, 0.6, 10.0, 20.0),
+        ('traffic counter', 7, 0.7, 0.0, 10.0),
+        ('cache', 8, 0.8, 10.0, 20.0),
+        ('proxy', 9, 0.9, 0.0, 10.0)
     ]
 
-    def __init__(self, pm, flavor, id=0, type=0, vm_cpu=0, vm_mem=0, vm_sto=0, cpu_usage=0, mem_usage=0, sto_usage=0, index=0, timestamp="", fg_id=0):
+    def __init__(self, pm, flavor, id=0, type=0, vm_cpu=0, vm_mem=0, vm_sto=0, cpu_usage=0, mem_usage=0, sto_usage=0, index=0, scheduling_class=0, timestamp="", fg_id=0):
         self.id = VNF.class_sequence if id == 0 else id
         if (type == 0):
             self.type = choice(VNF.types)
@@ -56,6 +56,7 @@ class VNF(object):
         self.index = index
         self.timestamp = timestamp
         self.fg_id = fg_id
+        self.scheduling_class = scheduling_class
 
         VNF.class_sequence += 1
 
@@ -82,11 +83,12 @@ class PhysicalMachine(object):
 class ForwardingGraph(object):
     class_sequence = 1
 
-    def __init__(self, id=0, flows=None, nsd=None):
+    def __init__(self, id=0, scheduling_class=None, flows=None, nsd=None):
         self.id = ForwardingGraph.class_sequence if id == 0 else id
         self.label = "fg"
         self.flows = flows
         self.nsd = nsd
+        self.scheduling_class = scheduling_class
 
         ForwardingGraph.class_sequence += 1
 

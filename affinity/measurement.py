@@ -1,5 +1,5 @@
-from debug import *
 from criteria import *
+from debug import *
 
 global debug
 
