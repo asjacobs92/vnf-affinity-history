@@ -15,7 +15,7 @@ from util import *
 vnfs = {}
 fgs = {}
 
-init = False
+init = True
 dataset = []
 
 num_iter = 0
