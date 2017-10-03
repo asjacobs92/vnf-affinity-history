@@ -1,18 +1,17 @@
 import numpy
 import scipy
 from sklearn import preprocessing
-from sklearn.naive_bayes import GaussianNB
-from sklearn.neural_network import MLPClassifier, MLPRegressor
+from sklearn.neural_network import MLPRegressor
 
 from affinity import *
 
-neural_net = MLPRegressor(solver='lbfgs', activation='tanh', hidden_layer_sizes=(12, 6), alpha=0.001, batch_size='auto',
+neural_net = MLPRegressor(solver='lbfgs', activation='tanh', hidden_layer_sizes=(10, 5), alpha=0.01, batch_size='auto',
                           learning_rate='adaptive', learning_rate_init=0.01, power_t=0.5, max_iter=1000, shuffle=True,
                           random_state=9,  tol=0.0001, verbose=False, warm_start=False, momentum=0.9,
                           nesterovs_momentum=True, early_stopping=False, validation_fraction=0.1, beta_1=0.9, beta_2=0.999,
                           epsilon=1e-08)
 
-min_max_scaler = preprocessing.MinMaxScaler()
+min_max_scaler = preprocessing.MinMaxScaler((-1, 1))
 
 nn_fit_data = []
 nn_validate_data = []
@@ -25,11 +24,6 @@ def rsquared(x, y):
 
 
 def get_nn_features(vnf_a, vnf_b, fg):
-    vnf_a_before_id = next((x.src for x in fg.flows if x.dst == vnf_a.label), "0.0") if (fg is not None) else "0.0"
-    vnf_a_after_id = next((x.dst for x in fg.flows if x.src == vnf_a.label), "0.0") if (fg is not None) else "0.0"
-    vnf_b_before_id = next((x.src for x in fg.flows if x.dst == vnf_b.label), "0.0") if (fg is not None) else "0.0"
-    vnf_b_after_id = next((x.dst for x in fg.flows if x.src == vnf_b.label), "0.0") if (fg is not None) else "0.0"
-
     values = [
         vnf_a.type[2],
         vnf_a.scheduling_class,

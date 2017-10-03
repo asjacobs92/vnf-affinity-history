@@ -36,7 +36,7 @@ def parse_vnfs():
     with open("res/input/vnfs.csv", "rb") as file:
         reader = csv.reader(file, delimiter=",")
         p = ThreadPool()
-        vnfs_list = p.map(parse_vnf, list(reader)[0:50000])
+        vnfs_list = p.map(parse_vnf, list(reader))
         vnfs = dict((x.id, x) for x in vnfs_list)
         p.close()
         p.join()

@@ -1,3 +1,5 @@
+from sklearn.externals import joblib
+
 from affinity import *
 
 
@@ -41,7 +43,8 @@ def get_headers():
         "conflicts affinity",
         "real_affinity",
         "static_affinity",
-        "predicted_affinity"
+        "predicted_affinity",
+        "prediction_time"
     ]
     return headers
 
@@ -98,3 +101,14 @@ def get_row_data(vnf_a, vnf_b, fg):
         conflicts_affinity(vnf_a, vnf_b, fg)
     ]
     return values
+
+
+def dump_neural_net(nn, mms):
+    joblib.dump(nn, "res/output/neural_net.pkl")
+    joblib.dump(mms, "res/output/min_max_scaler.pkl")
+
+
+def load_neural_net():
+    nn = joblib.load("res/output/neural_net.pkl")
+    mms = joblib.load("res/output/min_max_scaler.pkl")
+    return nn, mms

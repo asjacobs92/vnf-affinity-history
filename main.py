@@ -1,3 +1,4 @@
+import sys
 from math import *
 from multiprocessing import *
 from multiprocessing.pool import ThreadPool
@@ -14,12 +15,13 @@ from util import *
 
 vnfs = {}
 fgs = {}
-
-init = True
 dataset = []
 
 num_iter = 0
-iter_limit = 50
+iter_limit = 10
+
+init = False
+train = True
 
 best_rsquared = 0
 best_fit_data = []
@@ -34,7 +36,7 @@ def parse():
     fgs = parse_fgs()
     print len(fgs)
 
-    #print vnfs
+    # print vnfs
     vnfs = {k: v for k, v in vnfs.iteritems() if v.find_fgs(fgs)}
     print len(vnfs)
 
@@ -101,7 +103,7 @@ def split_dataset():
 
     print "Dataset size: " + str(len(dataset))
 
-    nn_fit_data = sample(dataset, int(len(dataset) * 0.8))
+    nn_fit_data = sample(dataset, int(len(dataset) * 0.7))
     print "Fit cases " + str(len(nn_fit_data))
 
     dataset_remain = list(set(dataset) - set(nn_fit_data))
@@ -144,7 +146,7 @@ def validate():
         best_fit_data = nn_fit_data
         best_test_data = nn_test_data
 
-    return (rsquared_value > 0.6) or (num_iter >= iter_limit)
+    return (rsquared_value > 0.8) or (num_iter >= iter_limit)
 
 
 def test():
@@ -153,7 +155,9 @@ def test():
     real_affinity = []
     static_affinity = []
     predicted_affinity = []
+    prediction_time = []
 
+    start = time()
     for (vnf_a, vnf_b, fg, affinity) in nn_test_data:
         for criterion in criteria:
             if (criterion.type == "dynamic"):
@@ -162,14 +166,15 @@ def test():
         real_affinity.append(affinity)
         static_affinity.append(affinity_measurement(vnf_a, vnf_b, fg)["result"])
         predicted_affinity.append(neural_net.predict(min_max_scaler.transform([get_nn_features(vnf_a, vnf_b, fg)]))[0])
+        prediction_time.append(time() - start)
 
     print "Writing results"
     with open("res/output/results.csv", "wb") as file:
         writer = csv.writer(file, delimiter=",")
         writer.writerow(get_headers())
 
-        for (vnf_a, vnf_b, fg, affinity), static, predicted in zip(nn_test_data, static_affinity, predicted_affinity):
-            writer.writerow(get_row_data(vnf_a, vnf_b, fg) + [affinity, static, predicted])
+        for (vnf_a, vnf_b, fg, affinity), static, predicted, t in zip(nn_test_data, static_affinity, predicted_affinity, prediction_time):
+            writer.writerow(get_row_data(vnf_a, vnf_b, fg) + [affinity, static, predicted, t])
 
     print("R Squared Real-Predicted: ", str(rsquared(real_affinity, predicted_affinity)))
     print("R Squared Real-Static: ", str(rsquared(real_affinity, static_affinity)))
@@ -205,11 +210,17 @@ if __name__ == "__main__":
         print "Splitting dataset"
         split_dataset()
 
-        print "Starting fit"
-        fit()
+        if (train):
+            print "Starting fit"
+            fit()
 
-        print "Starting validation"
-        if (validate()):
+            print "Starting validation"
+            if (validate()):
+                break
+        else:
+            print "Loading pre-trained neural network"
+            global neural_net, min_max_scaler
+            neural_net, min_max_scaler = load_neural_net()
             break
 
     if (num_iter >= iter_limit):
@@ -218,6 +229,8 @@ if __name__ == "__main__":
         nn_test_data = best_test_data
         fit()
 
+    if (train):
+        dump_neural_net(neural_net, min_max_scaler)
     print "Starting test"
     test()
     end = time()
