@@ -1,29 +1,30 @@
 from math import *
+from multiprocessing import *
+from multiprocessing.pool import ThreadPool
+from parser import *
 from random import *
 from time import *
 
 import numpy
 import scipy
 
-from util import *
-from parser import *
 from affinity import *
 from neuralnet import *
-from multiprocessing import *
-from multiprocessing.pool import ThreadPool
+from util import *
 
 vnfs = []
 fgs = {}
 
-init = False
+init = True
 dataset = []
 
 num_iter = 0
-iter_limit = 20
+iter_limit = 50
 
 best_rsquared = 0
 best_fit_data = []
 best_test_data = []
+
 
 def parse():
     global fgs, vnfs
@@ -66,7 +67,7 @@ def init_dataset_slice(slice):
 
     vnfs_per_proc = int(len(vnfs) / cpu_count())
     start_index = slice * vnfs_per_proc
-    end_index = (slice + 1) * vnfs_per_proc if slice != 7 else len(vnfs)
+    end_index = (slice + 1) * vnfs_per_proc if slice != (cpu_count() - 1) else len(vnfs)
     for i in range(start_index, end_index):
         for j in range(i + 1, len(vnfs)):
             vnf_a = vnfs[i]
@@ -81,7 +82,7 @@ def init_dataset_slice(slice):
 def init_dataset():
     global dataset
 
-    p = ThreadPool(cpu_count())
+    p = Pool(cpu_count())
     list_of_slices = p.map(init_dataset_slice, range(cpu_count()))
     dataset = [y for x in list_of_slices for y in x]
     p.close()
@@ -92,6 +93,7 @@ def init_dataset():
         for (vnf_a, vnf_b, fg, affinity) in dataset:
             writer.writerow(get_nn_features(vnf_a, vnf_b, fg) + [vnf_a.id, vnf_b.id, fg.id if fg is not None else 0, affinity])
 
+
 def split_dataset():
     global dataset, nn_fit_data, nn_validate_data, nn_test_data
 
@@ -101,8 +103,6 @@ def split_dataset():
     print "Fit cases " + str(len(nn_fit_data))
 
     dataset_remain = list(set(dataset) - set(nn_fit_data))
-    print "Remaining dataset: " + str(len(dataset_remain))
-
     nn_validate_data = sample(dataset_remain, int(len(dataset_remain) * 0.5))
     print "Validate cases " + str(len(nn_validate_data))
 

@@ -1,15 +1,15 @@
 import csv
+import os
+from math import *
+from multiprocessing import *
+from random import *
+from time import *
+
 import numpy
 import scipy
 import scipy.stats
-import os
 
-from time import *
-from math import *
-from time import *
-from random import *
 from affinity import *
-from multiprocessing.ThreadPool import ThreadPool
 
 vnfs = []
 fgs = []
@@ -22,6 +22,8 @@ def read_fg(job):
     fg = None
     if (int(job[3]) == 1):
         fg_id = int(job[2])
+        fg_scheduling = int(job[5])
+        max_latency = (4 - fg_scheduling) * 50.0
 
         flows = []
         fg_vnfs = filter(lambda x: x.fg_id == fg_id, vnfs)
@@ -31,12 +33,14 @@ def read_fg(job):
             dst = fg_vnfs[i + 1]
 
             traffic = numpy.random.uniform(0, 1, 1)[0] * 10
-            latency = numpy.random.uniform(0, 1, 1)[0] * 50
-            bnd_usage = numpy.random.uniform(0, 1, 1)[0] * 60
+            latency = numpy.random.uniform(0, 1, 1)[0] * max_latency
+            bnd_usage = numpy.random.uniform(0, 1, 1)[0] * 20
             pkt_loss = numpy.random.uniform(0, 1, 1)[0] * 10
             flows.append(Flow(src.label, dst.label, traffic, latency, bnd_usage, pkt_loss))
 
-            fg = ForwardingGraph(fg_id, flows, nsd=NSD())
+            fg = ForwardingGraph(fg_id, fg_scheduling, flows, nsd=NSD(sla=max_latency))
+            if (len(fg.flows) == 0):
+                fg = None
     return fg
 
 
@@ -46,7 +50,7 @@ def read_job_events():
         with open("res/dataset/je-part-0000" + str(i) + "-of-00500.csv", "rb") as file_fgs:
             reader_fgs = csv.reader(file_fgs)
 
-            p = ThreadPool()
+            p = Pool()
             fgs = filter(None, p.map(read_fg, list(reader_fgs)))
             p.close()
             p.join()
@@ -64,9 +68,9 @@ def read_task_usage(fg_id, vnf_index, pm):
 
             for usage in reader_usage:
                 if (int(usage[2]) == fg_id and int(usage[3]) == vnf_index and usage[13] != "" and usage[10] != "" and usage[14] != ""):
-                    cpu_usage = (float(usage[13]) / pm.cpu) * 100
-                    mem_usage = (float(usage[10]) / pm.mem) * 100
-                    sto_usage = (float(usage[14]) / pm.sto) * 100
+                    cpu_usage = min(100.0, (float(usage[13]) / pm.cpu) * 100)
+                    mem_usage = min(100.0, (float(usage[10]) / pm.mem) * 100)
+                    sto_usage = min(100.0, (float(usage[14]) / pm.sto) * 100)
                     break
 
     return cpu_usage, mem_usage, sto_usage
@@ -78,10 +82,9 @@ def read_vnf(task):
         timestamp = task[0]
         fg_id = int(task[2])
         vnf_index = int(task[3])
-        vnf_type = choice(VNF.types)
+        vnf_scheduling = int(task[7])
 
         pm_id = int(task[4])
-        #pm = next((x for x in pms if x.id == pm_id), None)
         pm = None
         for p in pms:
             if (p.id == pm_id):
@@ -97,6 +100,8 @@ def read_vnf(task):
             vm_cpu = float(task[9])
             vm_mem = float(task[10])
             vm_sto = float(task[11])
+            possible_types = filter(lambda x: x[3] <= cpu_usage and cpu_usage <= x[4],  VNF.types)
+            vnf_type = choice(possible_types)
 
             flavor = Flavor(min_cpu=vm_cpu * numpy.random.uniform(0, 1, 1)[0] * 2,
                             min_mem=vm_mem * numpy.random.uniform(0, 1, 1)[0] * 2,
@@ -115,6 +120,7 @@ def read_vnf(task):
                           mem_usage=mem_usage,
                           sto_usage=sto_usage,
                           index=vnf_index,
+                          scheduling_class=vnf_scheduling,
                           timestamp=timestamp,
                           fg_id=fg_id)
                 print vnf.id
@@ -122,7 +128,7 @@ def read_vnf(task):
     return vnf
 
 
-def init_ThreadPool(l, v):
+def init_pool(l, v):
     global lock, vnf_sequence
     lock = l
     vnf_sequence = v
@@ -133,7 +139,7 @@ def read_task_events():
     for i in range(num_files):
         with open("res/dataset/te-part-0000" + str(i) + "-of-00500.csv", "rb") as file_tasks:
             reader_tasks = csv.reader(file_tasks)
-            p = ThreadPool(initializer=init_ThreadPool, initargs=(Lock(), Value('i', 0)))
+            p = Pool(initializer=init_pool, initargs=(Lock(), Value('i', 0)))
             vnfs = filter(None, p.map(read_vnf, list(reader_tasks)))
             p.close()
             p.join()
@@ -155,7 +161,7 @@ def read_machine_events():
     pms = []
     with open("res/dataset/me-part-00000-of-00001.csv", "rb") as file_pms:
         reader_pms = csv.reader(file_pms)
-        p = ThreadPool()
+        p = Pool()
         pms = filter(None, p.map(read_pm, list(reader_pms)))
     return pms
 
@@ -181,7 +187,7 @@ def write():
         writer = csv.writer(file, delimiter=",")
         for vnf in vnfs:
             row = [
-                vnf.id, vnf.type[1], vnf.pm.id, vnf.fg_id,
+                vnf.id, vnf.type[1], vnf.scheduling_class, vnf.pm.id, vnf.fg_id,
                 vnf.flavor.min_cpu, vnf.flavor.min_mem, vnf.flavor.min_sto,
                 vnf.vm_cpu, vnf.vm_mem, vnf.vm_sto,
                 vnf.cpu_usage, vnf.mem_usage, vnf.sto_usage
@@ -191,7 +197,7 @@ def write():
     with open("res/input/fgs.csv", "wb") as file:
         writer = csv.writer(file, delimiter=",")
         for fg in fgs:
-            fg_row = [fg.id, len(fg.flows)]
+            fg_row = [fg.id, len(fg.flows), fg.scheduling_class]
             writer.writerow(fg_row)
             for flow in fg.flows:
                 flow_row = [flow.src, flow.dst, flow.traffic, flow.latency, flow.bnd_usage, flow.pkt_loss, fg.nsd.sla]
