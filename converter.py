@@ -123,7 +123,8 @@ def read_vnf(task):
                           scheduling_class=vnf_scheduling,
                           timestamp=timestamp,
                           fg_id=fg_id)
-                print vnf.id
+                if (vnf_sequence.value % 10000 == 0):
+                    print vnf.id
 
     return vnf
 
