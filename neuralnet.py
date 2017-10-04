@@ -11,7 +11,7 @@ neural_net = MLPRegressor(solver='lbfgs', activation='tanh', hidden_layer_sizes=
                           nesterovs_momentum=True, early_stopping=False, validation_fraction=0.1, beta_1=0.9, beta_2=0.999,
                           epsilon=1e-08)
 
-min_max_scaler = preprocessing.MinMaxScaler((-1, 1))
+scaler = preprocessing.MinMaxScaler((- 1, 1))
 
 nn_fit_data = []
 nn_validate_data = []

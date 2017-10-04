@@ -103,12 +103,12 @@ def get_row_data(vnf_a, vnf_b, fg):
     return values
 
 
-def dump_neural_net(nn, mms):
+def dump_neural_net(nn, scaler):
     joblib.dump(nn, "res/output/neural_net.pkl")
-    joblib.dump(mms, "res/output/min_max_scaler.pkl")
+    joblib.dump(scaler, "res/output/scaler.pkl")
 
 
 def load_neural_net():
     nn = joblib.load("res/output/neural_net.pkl")
-    mms = joblib.load("res/output/min_max_scaler.pkl")
-    return nn, mms
+    scaler = joblib.load("res/output/scaler.pkl")
+    return nn, scaler

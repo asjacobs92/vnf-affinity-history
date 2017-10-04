@@ -13,7 +13,7 @@ def parse_vnf(row):
     vnf_fg = int(row[4])
     flavor_data = row[5:8]
     vm_data = row[8:11]
-    usage_data = row[11:14]
+    usage_data = row[11:15]
 
     pm = PhysicalMachine(vnf_pm)
     flavor = Flavor(min_cpu=float(flavor_data[0]), min_mem=float(flavor_data[1]), min_sto=float(flavor_data[2]))
@@ -28,7 +28,8 @@ def parse_vnf(row):
                vm_sto=float(vm_data[2]),
                cpu_usage=float(usage_data[0]),
                mem_usage=float(usage_data[1]),
-               sto_usage=float(usage_data[2]))
+               sto_usage=float(usage_data[2]),
+               exec_time=int(usage_data[3]))
 
 
 def parse_vnfs():
@@ -67,10 +68,11 @@ def parse_fgs():
 
 
 def parse_affinity_case(vnfs, fgs, case):
-    vnf_a_id = int(case[len(case) - 4])
-    vnf_b_id = int(case[len(case) - 3])
-    fg_id = int(case[len(case) - 2])
-    affinity = float(case[len(case) - 1])
+    length = len(case)
+    vnf_a_id = int(case[length - 4])
+    vnf_b_id = int(case[length - 3])
+    fg_id = int(case[length - 2])
+    affinity = float(case[length - 1])
 
     vnf_a = vnfs[vnf_a_id]
     vnf_b = vnfs[vnf_b_id]

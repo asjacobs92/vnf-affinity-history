@@ -37,7 +37,6 @@ def parse():
     fgs = parse_fgs()
     print len(fgs)
 
-    # print vnfs
     vnfs = {k: v for k, v in vnfs.iteritems() if v.find_fgs(fgs)}
     print len(vnfs)
 
@@ -96,7 +95,7 @@ def init_dataset():
     with open("res/input/nn_dataset.csv", "wb") as file:
         writer = csv.writer(file, delimiter=",")
         for (vnf_a, vnf_b, fg, affinity) in dataset:
-            writer.writerow(get_nn_features(vnf_a, vnf_b, fg) + [vnf_a.id, vnf_b.id, fg.id if fg is not None else 0, affinity])
+            writer.writerow(get_nn_features(vnf_a, vnf_b, fg) + [vnf_a.exec_time + vnf_b.exec_time, vnf_a.id, vnf_b.id, fg.id if fg is not None else 0, affinity])
 
 
 def split_dataset():
@@ -116,7 +115,7 @@ def split_dataset():
 
 
 def fit():
-    global neural_net, min_max_scaler, nn_fit_data
+    global neural_net, scaler, nn_fit_data
 
     fit_array = []
     fit_affinity = []
@@ -125,11 +124,11 @@ def fit():
         fit_array.append(get_nn_features(vnf_a, vnf_b, fg))
         fit_affinity.append(affinity)
 
-    neural_net.fit(min_max_scaler.fit_transform(fit_array), fit_affinity)
+    neural_net.fit(scaler.fit_transform(fit_array), fit_affinity)
 
 
 def validate():
-    global neural_net, min_max_scaler, nn_fit_data, nn_validate_data, nn_test_data
+    global neural_net, scaler, nn_fit_data, nn_validate_data, nn_test_data
     global best_rsquared, best_fit_data, best_test_data
 
     real_affinity = []
@@ -137,7 +136,7 @@ def validate():
 
     for (vnf_a, vnf_b, fg, affinity) in nn_validate_data:
         real_affinity.append(affinity)
-        predicted_affinity.append(neural_net.predict(min_max_scaler.transform([get_nn_features(vnf_a, vnf_b, fg)]))[0])
+        predicted_affinity.append(neural_net.predict(scaler.transform([get_nn_features(vnf_a, vnf_b, fg)]))[0])
 
     rsquared_value = rsquared(real_affinity, predicted_affinity)
     print "Validation R-squared value: " + str(rsquared_value)
@@ -151,7 +150,7 @@ def validate():
 
 
 def test():
-    global criteria, neural_net, min_max_scaler, nn_test_data
+    global criteria, neural_net, scaler, nn_test_data
 
     real_affinity = []
     static_affinity = []
@@ -166,7 +165,7 @@ def test():
 
         real_affinity.append(affinity)
         static_affinity.append(affinity_measurement(vnf_a, vnf_b, fg)["result"])
-        predicted_affinity.append(neural_net.predict(min_max_scaler.transform([get_nn_features(vnf_a, vnf_b, fg)]))[0])
+        predicted_affinity.append(neural_net.predict(scaler.transform([get_nn_features(vnf_a, vnf_b, fg)]))[0])
         prediction_time.append(time() - start)
 
     print "Writing results"
@@ -220,8 +219,8 @@ if __name__ == "__main__":
                 break
         else:
             print "Loading pre-trained neural network"
-            global neural_net, min_max_scaler
-            neural_net, min_max_scaler = load_neural_net()
+            global neural_net, scaler
+            neural_net, scaler = load_neural_net()
             break
 
     if (num_iter >= iter_limit):
@@ -231,7 +230,7 @@ if __name__ == "__main__":
         fit()
 
     if (train):
-        dump_neural_net(neural_net, min_max_scaler)
+        dump_neural_net(neural_net, scaler)
     print "Starting test"
     test()
     end = time()
