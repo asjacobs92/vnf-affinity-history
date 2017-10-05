@@ -29,7 +29,7 @@ class VNF(object):
         ('proxy', 9, 0.9, 0.0, 10.0)
     ]
 
-    def __init__(self, pm, flavor, id=0, type=0, vm_cpu=0, vm_mem=0, vm_sto=0, cpu_usage=0, mem_usage=0, sto_usage=0, index=0, scheduling_class=0, timestamp="", fg_id=0):
+    def __init__(self, pm, flavor, id=0, type=0, vm_cpu=0, vm_mem=0, vm_sto=0, cpu_usage=0, mem_usage=0, sto_usage=0, exec_time=0, index=0, scheduling_class=0, timestamp="", fg_id=0):
         self.id = VNF.class_sequence if id == 0 else id
         if (type == 0):
             self.type = choice(VNF.types)
@@ -57,6 +57,7 @@ class VNF(object):
         self.timestamp = timestamp
         self.fg_id = fg_id
         self.scheduling_class = scheduling_class
+        self.exec_time = exec_time
 
         VNF.class_sequence += 1
 
