@@ -165,23 +165,6 @@ def read_vnf(task):
                 execution_times[(fg_id, vnf_index)] = (0, timestamp)
                 print (0, timestamp)
 
-    if (int(task[5]) == 4):
-        finish_timestamp = int(task[0])
-        fg_id = int(task[2])
-        vnf_index = int(task[3])
-
-        with lock:
-            if (first_tstamp.value == 0):
-                first_tstamp.value = finish_timestamp
-
-            start_timestamp = execution_times[(fg_id, vnf_index)]
-
-            if (start_timestamp == 0):
-                start_timestamp = first_tstamp.value
-
-            exec_time = finish_timestamp - start_timestamp
-            execution_times[(fg_id, vnf_index)] = exec_time
-
     return vnf
 
 
@@ -198,27 +181,16 @@ def read_task_events():
         with open("res/dataset/te-part-0000" + str(i) + "-of-00500.csv", "rb") as file_tasks:
             reader_tasks = csv.reader(file_tasks)
             p = ThreadPool(initializer=init_pool, initargs=(Lock(), Value('i', 0), Value('i', 0)))
-
-
-<< << << < HEAD
-            l = list(reader_tasks)[299000:301000]
-            print l
+            l = list(reader_tasks)[290000:330000]
             vnfs = filter(None, p.map(read_vnf, l))
-== == == =
-            vnfs = filter(None, p.map(read_vnf, list(reader_tasks)))
->>>>>> > 181876a3c60e176ed517e4b379e72281a4277a0e
             p.close()
             p.join()
 
     for vnf in vnfs:
-<<<<<<< HEAD
         print vnf.id
         (start_timestamp, stop_timestamp) = execution_times[(vnf.fg_id, vnf.index)]
         print start_timestamp, stop_timestamp
         vnf.exec_time = stop_timestamp - start_timestamp
-=======
-        vnf.exec_time = execution_times(vnf.fg_id, vnf.index)
->>>>>>> 181876a3c60e176ed517e4b379e72281a4277a0e
 
     return vnfs
 
